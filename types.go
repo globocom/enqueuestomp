@@ -62,6 +62,7 @@ func (c *Config) init() {
 	if c.Network == "" {
 		c.Network = "tcp"
 	}
+
 	if c.Addr == "" {
 		c.Addr = "localhost:61613"
 	}
