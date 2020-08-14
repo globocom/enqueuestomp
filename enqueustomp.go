@@ -3,18 +3,20 @@ package enqueuestomp
 import (
 	"errors"
 	"fmt"
+	"log"
+	"strings"
 	"time"
 
 	"github.com/gammazero/workerpool"
 	"github.com/go-stomp/stomp"
 )
 
-func NewEnqueueStomp(c Config) (*EnqueueStomp, error) {
-	c.init()
+func NewEnqueueStomp(config Config) (*EnqueueStomp, error) {
+	config.init()
 
 	emq := &EnqueueStomp{
-		config: c,
-		wp:     workerpool.New(c.MaxWorkers),
+		config: config,
+		wp:     workerpool.New(config.MaxWorkers),
 	}
 
 	var err error
@@ -28,20 +30,38 @@ func NewEnqueueStomp(c Config) (*EnqueueStomp, error) {
 // The body array contains the message body,
 // and its content should be consistent with the specified content type.
 func (emq *EnqueueStomp) SendQueue(queue string, body []byte, opt SendOptions) error {
-	opt.init()
+	if queue == "" || strings.TrimSpace(queue) == "" {
+		return ErrEmptyQueue
+	}
 
+	destination := fmt.Sprintf("/queue/%s", queue)
+	return emq.send(destination, body, opt)
+}
+
+// The body array contains the message body,
+// and its content should be consistent with the specified content type.
+func (emq *EnqueueStomp) SendTopic(topic string, body []byte, opt SendOptions) error {
+	if topic == "" || strings.TrimSpace(topic) == "" {
+		return ErrEmptyTopic
+	}
+
+	destination := fmt.Sprintf("/topic/%s", topic)
+	return emq.send(destination, body, opt)
+}
+
+func (emq *EnqueueStomp) send(destination string, body []byte, opt SendOptions) error {
 	if len(body) == 0 {
 		return ErrEmptyPayload
 	}
 
+	opt.init()
 	emq.wp.Submit(func() {
 		initTime := time.Now()
 
 		if opt.BeforeSend != nil {
-			opt.BeforeSend(queue, initTime)
+			opt.BeforeSend(destination, initTime)
 		}
 
-		destination := fmt.Sprintf("/queue/%s", queue)
 		err := emq.conn.Send(destination, opt.ContentType, body, opt.FrameOpts...)
 
 		if errors.Is(err, stomp.ErrAlreadyClosed) || errors.Is(err, stomp.ErrClosedUnexpectedly) {
@@ -49,7 +69,7 @@ func (emq *EnqueueStomp) SendQueue(queue string, body []byte, opt SendOptions) e
 		}
 
 		if opt.AfterSend != nil {
-			opt.AfterSend(queue, initTime, err)
+			opt.AfterSend(destination, initTime, err)
 		}
 	})
 
@@ -60,13 +80,29 @@ func (emq *EnqueueStomp) SendQueue(queue string, body []byte, opt SendOptions) e
 func (emq *EnqueueStomp) newConn() (conn *stomp.Conn, err error) {
 	emq.rw.Lock()
 	defer emq.rw.Unlock()
-
 	if conn != nil {
 		return conn, nil
 	}
 
-	conn, err = stomp.Dial(emq.config.Network, emq.config.Addr, emq.config.ConnOptions...)
-	return conn, err
+	for i := 1; i <= emq.config.RetriesConnect; i++ {
+		conn, err = stomp.Dial(emq.config.Network, emq.config.Addr, emq.config.ConnOptions...)
+		if err == nil && conn != nil {
+			log.Printf(
+				"[EnqueueStomp] Connected :: %s ",
+				emq.config.Addr,
+			)
+			return conn, nil
+		}
+
+		timeSleep := emq.config.Backoff(i)
+		log.Printf(
+			"[EnqueueStomp] IS OUT OF SERVICE :: %s :: A new conn was tried but failed - sleeping  %s ...",
+			emq.config.Addr, timeSleep.String(),
+		)
+		time.Sleep(timeSleep)
+	}
+
+	return nil, err
 }
 
 func (emq *EnqueueStomp) QueueSize() int {

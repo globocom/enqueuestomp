@@ -11,17 +11,24 @@ import (
 	"github.com/go-stomp/stomp/frame"
 )
 
-var ErrEmptyPayload = errors.New("empty payload")
+var (
+	ErrEmptyPayload = errors.New("empty payload")
+	ErrEmptyQueue   = errors.New("empty queue")
+	ErrEmptyTopic   = errors.New("mpty topic")
+)
+
+const (
+	defaultRetriesConnect = 3
+)
 
 type (
-
 	// https://pkg.go.dev/github.com/go-stomp/stomp
 	Config struct {
-		// Default is tcp.
+		// Default is tcp
 		Network string
 
 		// host:port address.
-		// Default is localhost:61613.
+		// Default is localhost:61613
 		Addr string
 
 		// stomp.ConnOpt
@@ -30,8 +37,14 @@ type (
 		// The maxWorkers parameter specifies the maximum number of workers that can
 		// execute tasks concurrently.  When there are no incoming tasks, workers are
 		// gradually stopped until there are no remaining workers.
-		// Default is runtime.NumCPU().
+		// Default is runtime.NumCPU()
 		MaxWorkers int
+
+		// Default is 3
+		RetriesConnect int
+
+		// Default is ExponentialBackoff
+		Backoff BackoffStrategy
 	}
 
 	// https://pkg.go.dev/github.com/go-stomp/stomp/frame
@@ -45,9 +58,9 @@ type (
 		// to receive a RECEIPT, should the content-length be suppressed, and sending custom header entries.
 		FrameOpts []func(*frame.Frame) error
 
-		BeforeSend func(queue string, init time.Time)
+		BeforeSend func(destination string, init time.Time)
 
-		AfterSend func(queue string, init time.Time, err error)
+		AfterSend func(destination string, init time.Time, err error)
 	}
 
 	EnqueueStomp struct {
@@ -69,6 +82,14 @@ func (c *Config) init() {
 
 	if c.MaxWorkers < 1 {
 		c.MaxWorkers = runtime.NumCPU()
+	}
+
+	if c.RetriesConnect < 1 {
+		c.RetriesConnect = defaultRetriesConnect
+	}
+
+	if c.Backoff == nil {
+		c.Backoff = ExponentialBackoff
 	}
 }
 
