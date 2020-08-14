@@ -6,7 +6,7 @@ start-activemq:
 
 stop-activemq:
 	@if [ "$(CONTAINER_MQ)" ]; then \
-		@echo "stop container..."; \
+		echo "stop container..."; \
 		docker container rm -f $(CONTAINER_MQ);\
 	fi; \
 

@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"gitlab.globoi.com/janilton/enqueuestomp"
+	"github.com/globocom/enqueuestomp"
 	check "gopkg.in/check.v1"
 )
 
@@ -30,9 +30,9 @@ func (s *MySuite) TestDefaultConfig(c *check.C) {
 	c.Assert(config.Network, check.Equals, "tcp")
 	c.Assert(config.MaxWorkers, check.Equals, runtime.NumCPU())
 	c.Assert(config.RetriesConnect, check.Equals, 3)
-	c.Assert(config.Backoff, check.NotNil)
+	c.Assert(config.BackoffConnect, check.NotNil)
 	for i := 1; i < 3; i++ {
-		c.Assert(config.Backoff(i), check.Equals, time.Duration(i*2)*enqueuestomp.DefaultInitialBackOff)
+		c.Assert(config.BackoffConnect(i), check.Equals, time.Duration(i*2)*enqueuestomp.DefaultInitialBackOff)
 	}
 }
 
@@ -42,7 +42,7 @@ func (s *MySuite) TestConfigLinearBackoff(c *check.C) {
 		Network:        "tcp",
 		MaxWorkers:     1,
 		RetriesConnect: 1,
-		Backoff:        enqueuestomp.LinearBackoff,
+		BackoffConnect: enqueuestomp.LinearBackoff,
 	}
 	enqueue, err := enqueuestomp.NewEnqueueStomp(
 		configEnqueue,
@@ -56,9 +56,9 @@ func (s *MySuite) TestConfigLinearBackoff(c *check.C) {
 	c.Assert(config.Network, check.Equals, configEnqueue.Network)
 	c.Assert(config.MaxWorkers, check.Equals, configEnqueue.MaxWorkers)
 	c.Assert(config.RetriesConnect, check.Equals, configEnqueue.RetriesConnect)
-	c.Assert(config.Backoff, check.NotNil)
+	c.Assert(config.BackoffConnect, check.NotNil)
 	for i := 1; i < 3; i++ {
-		c.Assert(config.Backoff(i), check.Equals, time.Duration(i)*enqueuestomp.DefaultInitialBackOff)
+		c.Assert(config.BackoffConnect(i), check.Equals, time.Duration(i)*enqueuestomp.DefaultInitialBackOff)
 	}
 }
 
@@ -68,7 +68,7 @@ func (s *MySuite) TestConfigConstantBackOff(c *check.C) {
 		Network:        "tcp",
 		MaxWorkers:     2,
 		RetriesConnect: 1,
-		Backoff:        enqueuestomp.ConstantBackOff,
+		BackoffConnect: enqueuestomp.ConstantBackOff,
 	}
 	enqueue, err := enqueuestomp.NewEnqueueStomp(
 		configEnqueue,
@@ -82,9 +82,9 @@ func (s *MySuite) TestConfigConstantBackOff(c *check.C) {
 	c.Assert(config.Network, check.Equals, configEnqueue.Network)
 	c.Assert(config.MaxWorkers, check.Equals, configEnqueue.MaxWorkers)
 	c.Assert(config.RetriesConnect, check.Equals, configEnqueue.RetriesConnect)
-	c.Assert(config.Backoff, check.NotNil)
+	c.Assert(config.BackoffConnect, check.NotNil)
 	for i := 1; i < 3; i++ {
-		c.Assert(config.Backoff(i), check.Equals, enqueuestomp.DefaultInitialBackOff)
+		c.Assert(config.BackoffConnect(i), check.Equals, enqueuestomp.DefaultInitialBackOff)
 	}
 }
 
@@ -119,4 +119,21 @@ func (s *MySuite) TestFailtConnect3(c *check.C) {
 		configEnqueue,
 	)
 	c.Assert(err, check.NotNil)
+}
+
+func (s *MySuite) TestSendQueue(c *check.C) {
+	configEnqueue := enqueuestomp.Config{}
+	enqueue, err := enqueuestomp.NewEnqueueStomp(
+		configEnqueue,
+	)
+	if err != nil {
+		c.Fatal(err)
+	}
+
+	queueName := "testeStomp"
+	body := []byte("bodyStomp")
+	so := enqueuestomp.SendOptions{}
+	err = enqueue.SendQueue(queueName, body, so)
+
+	c.Assert(err, check.IsNil)
 }
