@@ -2,28 +2,18 @@ package enqueuestomp_test
 
 import (
 	"runtime"
-	"testing"
 	"time"
 
 	"github.com/globocom/enqueuestomp"
 	check "gopkg.in/check.v1"
 )
 
-// Hook up gocheck into the "go test" runner.
-func Test(t *testing.T) { check.TestingT(t) }
-
-type MySuite struct{}
-
-var _ = check.Suite(&MySuite{})
-
-func (s *MySuite) TestDefaultConfig(c *check.C) {
+func (s *EnqueueStompSuite) TestDefaultConfig(c *check.C) {
 	configEnqueue := enqueuestomp.Config{}
 	enqueue, err := enqueuestomp.NewEnqueueStomp(
 		configEnqueue,
 	)
-	if err != nil {
-		c.Fatal(err)
-	}
+	c.Assert(err, check.IsNil)
 
 	config := enqueue.Config()
 	c.Assert(config.Addr, check.Equals, "localhost:61613")
@@ -36,7 +26,7 @@ func (s *MySuite) TestDefaultConfig(c *check.C) {
 	}
 }
 
-func (s *MySuite) TestConfigLinearBackoff(c *check.C) {
+func (s *EnqueueStompSuite) TestConfigLinearBackoff(c *check.C) {
 	configEnqueue := enqueuestomp.Config{
 		Addr:           "localhost:61613",
 		Network:        "tcp",
@@ -47,9 +37,7 @@ func (s *MySuite) TestConfigLinearBackoff(c *check.C) {
 	enqueue, err := enqueuestomp.NewEnqueueStomp(
 		configEnqueue,
 	)
-	if err != nil {
-		c.Fatal(err)
-	}
+	c.Assert(err, check.IsNil)
 
 	config := enqueue.Config()
 	c.Assert(config.Addr, check.Equals, configEnqueue.Addr)
@@ -62,7 +50,7 @@ func (s *MySuite) TestConfigLinearBackoff(c *check.C) {
 	}
 }
 
-func (s *MySuite) TestConfigConstantBackOff(c *check.C) {
+func (s *EnqueueStompSuite) TestConfigConstantBackOff(c *check.C) {
 	configEnqueue := enqueuestomp.Config{
 		Addr:           "localhost:61613",
 		Network:        "tcp",
@@ -73,9 +61,7 @@ func (s *MySuite) TestConfigConstantBackOff(c *check.C) {
 	enqueue, err := enqueuestomp.NewEnqueueStomp(
 		configEnqueue,
 	)
-	if err != nil {
-		c.Fatal(err)
-	}
+	c.Assert(err, check.IsNil)
 
 	config := enqueue.Config()
 	c.Assert(config.Addr, check.Equals, configEnqueue.Addr)
@@ -88,7 +74,7 @@ func (s *MySuite) TestConfigConstantBackOff(c *check.C) {
 	}
 }
 
-func (s *MySuite) TestFailtConnect(c *check.C) {
+func (s *EnqueueStompSuite) TestFailtConnect(c *check.C) {
 	configEnqueue := enqueuestomp.Config{
 		Addr:           "XPTO:61613",
 		RetriesConnect: 1,
@@ -99,7 +85,7 @@ func (s *MySuite) TestFailtConnect(c *check.C) {
 	c.Assert(err, check.NotNil)
 }
 
-func (s *MySuite) TestFailtConnect2(c *check.C) {
+func (s *EnqueueStompSuite) TestFailtConnect2(c *check.C) {
 	configEnqueue := enqueuestomp.Config{
 		Addr:           "localhost:123456789",
 		RetriesConnect: 1,
@@ -110,7 +96,7 @@ func (s *MySuite) TestFailtConnect2(c *check.C) {
 	c.Assert(err, check.NotNil)
 }
 
-func (s *MySuite) TestFailtConnect3(c *check.C) {
+func (s *EnqueueStompSuite) TestFailtConnect3(c *check.C) {
 	configEnqueue := enqueuestomp.Config{
 		Network:        "xpto",
 		RetriesConnect: 1,
@@ -121,14 +107,12 @@ func (s *MySuite) TestFailtConnect3(c *check.C) {
 	c.Assert(err, check.NotNil)
 }
 
-func (s *MySuite) TestSendQueue(c *check.C) {
-	configEnqueue := enqueuestomp.Config{}
+func (s *EnqueueStompSuite) TestSendQueue(c *check.C) {
+	configEnqueue := enqueuestomp.NewConfig("localhost:61613", 1, 1)
 	enqueue, err := enqueuestomp.NewEnqueueStomp(
 		configEnqueue,
 	)
-	if err != nil {
-		c.Fatal(err)
-	}
+	c.Assert(err, check.IsNil)
 
 	queueName := "testeStomp"
 	body := []byte("bodyStomp")
@@ -136,4 +120,25 @@ func (s *MySuite) TestSendQueue(c *check.C) {
 	err = enqueue.SendQueue(queueName, body, so)
 
 	c.Assert(err, check.IsNil)
+}
+
+func (s *EnqueueStompSuite) TestSendQueueWithCircuitBreaker(c *check.C) {
+	configEnqueue := enqueuestomp.NewConfig("localhost:61613", 1, 1)
+	enqueue, err := enqueuestomp.NewEnqueueStomp(
+		configEnqueue,
+	)
+	c.Assert(err, check.IsNil)
+
+	enqueue.ConfigureCircuitBreaker(
+		"circuit-enqueuestomp",
+		enqueuestomp.CircuitBreakerConfig{},
+	)
+
+	queueName := "testeStomp"
+	body := []byte("bodyStomp")
+	so := enqueuestomp.SendOptions{
+		CircuitName: "circuit-enqueuestomp",
+	}
+	err = enqueue.SendQueue(queueName, body, so)
+
 }

@@ -3,15 +3,15 @@ package enqueuestomp
 import (
 	"errors"
 	"fmt"
-	"log"
-	"math/rand"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/afex/hystrix-go/hystrix"
 	"github.com/gammazero/workerpool"
 	"github.com/go-stomp/stomp"
+	uuid "github.com/satori/go.uuid"
 )
 
 var (
@@ -21,26 +21,26 @@ var (
 )
 
 type EnqueueStomp struct {
-	id           int
+	id           string
 	config       Config
-	rw           sync.RWMutex
+	mu           sync.RWMutex
 	conn         *stomp.Conn
 	wp           *workerpool.WorkerPool
 	circuitNames map[string]string
+	connected    int32
 }
 
 func NewEnqueueStomp(config Config) (*EnqueueStomp, error) {
 	config.init()
 
-	rand.Seed(time.Now().UnixNano())
 	emq := &EnqueueStomp{
-		id:     rand.Int(), // nolint:gosec
-		config: config,
-		wp:     workerpool.New(config.MaxWorkers),
+		id:           makeIdentifier(),
+		config:       config,
+		wp:           workerpool.New(config.MaxWorkers),
+		circuitNames: make(map[string]string),
 	}
 
-	var err error
-	if emq.conn, err = emq.newConn(); err != nil {
+	if err := emq.newConn(emq.id); err != nil {
 		return nil, err
 	}
 
@@ -53,9 +53,7 @@ func (emq *EnqueueStomp) SendQueue(queue string, body []byte, so SendOptions) er
 	if queue == "" || strings.TrimSpace(queue) == "" {
 		return ErrEmptyQueue
 	}
-
-	destination := fmt.Sprintf("/queue/%s", queue)
-	return emq.send(destination, body, so)
+	return emq.send(destinationTypeQueue, queue, body, so)
 }
 
 // The body array contains the message body,
@@ -65,25 +63,7 @@ func (emq *EnqueueStomp) SendTopic(topic string, body []byte, so SendOptions) er
 		return ErrEmptyTopic
 	}
 
-	destination := fmt.Sprintf("/topic/%s", topic)
-	return emq.send(destination, body, so)
-}
-
-func (emq *EnqueueStomp) ConfigureCircuitBreaker(
-	name string, timeout, maxConcurrentRequests, requestVolumeThreshold, sleepWindow, errorPercentThreshold int,
-) {
-	emq.rw.Lock()
-	defer emq.rw.Unlock()
-
-	circuitName := emq.makeCircuitName(name)
-	hystrix.ConfigureCommand(circuitName, hystrix.CommandConfig{
-		Timeout:                timeout,
-		MaxConcurrentRequests:  maxConcurrentRequests,
-		RequestVolumeThreshold: requestVolumeThreshold,
-		SleepWindow:            sleepWindow,
-		ErrorPercentThreshold:  errorPercentThreshold,
-	})
-	emq.circuitNames[circuitName] = circuitName
+	return emq.send(destinationTypeTopic, topic, body, so)
 }
 
 func (emq *EnqueueStomp) QueueSize() int {
@@ -94,43 +74,49 @@ func (emq *EnqueueStomp) Config() Config {
 	return emq.config
 }
 
-func (emq *EnqueueStomp) send(destination string, body []byte, so SendOptions) error {
+func (emq *EnqueueStomp) send(destinationType string, destinationName string, body []byte, so SendOptions) error {
 	if len(body) == 0 {
 		return ErrEmptyPayload
 	}
-
 	so.init()
+	identifier := makeIdentifier()
 
 	emq.wp.Submit(func() {
-		initTime := time.Now()
+		var err error
+		startTime := time.Now()
+		destination := fmt.Sprintf("/%s/%s", destinationType, destinationName)
+		circuitName := emq.makeCircuitName(so.CircuitName)
 
 		if so.BeforeSend != nil {
-			so.BeforeSend(destination, body, initTime)
+			so.BeforeSend(identifier, destinationType, destinationName, body, startTime)
 		}
 
-		var err error
-		circuitName := emq.makeCircuitName(so.CircuitName)
+	Retry:
 		if emq.hasCircuitBreaker(circuitName) {
-			log.Print("[EnqueueStomp] send with CircuitBreaker\n")
-
-			_ = hystrix.Do(circuitName, func() error {
-				return emq.conn.Send(destination, so.ContentType, body, so.FrameOpts...)
-			}, func(err error) error {
-				log.Printf("fallback error %s\n", err)
-				return nil
-			})
-
+			err = emq.sendWithCircuitBreaker(circuitName, destination, body, so)
 		} else {
-			log.Print("[EnqueueStomp] send normal\n")
+			Printf(identifier, "send message")
 			err = emq.conn.Send(destination, so.ContentType, body, so.FrameOpts...)
 		}
 
-		if errors.Is(err, stomp.ErrAlreadyClosed) || errors.Is(err, stomp.ErrClosedUnexpectedly) {
-			emq.conn, _ = emq.newConn()
+		switch {
+		case errors.Is(err, hystrix.ErrCircuitOpen):
+			Printf(identifier, "Circuit Open `%s`", err)
+
+		case errors.Is(err, stomp.ErrAlreadyClosed) || errors.Is(err, stomp.ErrClosedUnexpectedly):
+			Printf(identifier, "ErrAlreadyClosed `%s`", err)
+			atomic.AddInt32(&emq.connected, 0)
+			if err = emq.newConn(identifier); err == nil {
+				Printf(identifier, "Retry send...")
+				goto Retry
+			}
+
+		case err != nil:
+			logger.Printf("[EnqueueStomp] send error `%s`\n ", err)
 		}
 
 		if so.AfterSend != nil {
-			so.AfterSend(destination, body, initTime, err)
+			so.AfterSend(identifier, destinationType, destinationName, body, startTime, err)
 		}
 	})
 
@@ -138,50 +124,39 @@ func (emq *EnqueueStomp) send(destination string, body []byte, so SendOptions) e
 }
 
 // NewConn Creates a new conn to broker.
-func (emq *EnqueueStomp) newConn() (conn *stomp.Conn, err error) {
-	emq.rw.Lock()
-	defer emq.rw.Unlock()
-	if conn != nil {
-		return conn, nil
+func (emq *EnqueueStomp) newConn(identifier string) (err error) {
+	emq.mu.Lock()
+	defer emq.mu.Unlock()
+	if atomic.LoadInt32(&emq.connected) != 0 {
+		return nil
 	}
 
+	var conn *stomp.Conn
 	for i := 1; i <= emq.config.RetriesConnect; i++ {
 		conn, err = stomp.Dial(emq.config.Network, emq.config.Addr, emq.config.ConnOptions...)
 		if err == nil && conn != nil {
-			log.Printf(
-				"[EnqueueStomp] Connected :: %s ",
-				emq.config.Addr,
-			)
-			return conn, nil
+			Printf(identifier, "Connected :: %s ", emq.config.Addr)
+			emq.conn = conn
+			atomic.AddInt32(&emq.connected, 1)
+			return nil
 		}
 
 		timeSleep := emq.config.BackoffConnect(i)
-		log.Printf(
-			"[EnqueueStomp] IS OUT OF SERVICE :: %s :: A new conn was tried but failed - sleeping  %s ...",
-			emq.config.Addr, timeSleep.String(),
+		Printf(identifier,
+			"IS OUT OF SERVICE :: %s :: A new conn was tried but failed - sleeping  %s - %d/%d...",
+			emq.config.Addr, timeSleep.String(), i, emq.config.RetriesConnect,
 		)
 		time.Sleep(timeSleep)
 	}
 
-	return nil, err
+	Printf(identifier,
+		"IS OUT OF SERVICE :: %s ::",
+		emq.config.Addr,
+	)
+
+	return err
 }
 
-func (emq *EnqueueStomp) makeCircuitName(name string) string {
-	return fmt.Sprintf("%s::%d", name, emq.id)
+func makeIdentifier() string {
+	return uuid.NewV4().String()
 }
-
-func (emq *EnqueueStomp) hasCircuitBreaker(name string) bool {
-	_, found := emq.circuitNames[name]
-	return found
-}
-
-// func (emq *EnqueueStomp) _send(destination string, body []byte, opt SendOptions) error {
-// 	// hystrix.CommandConfig
-
-// 	_ = hystrix.Go("tm.Options.HystrixConfig.Name", func() error {
-
-// 		return nil
-// 	}, nil)
-
-// 	return nil
-// }

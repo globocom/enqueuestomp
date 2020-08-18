@@ -6,6 +6,11 @@ import (
 	"github.com/go-stomp/stomp/frame"
 )
 
+const (
+	destinationTypeQueue = "queue"
+	destinationTypeTopic = "topic"
+)
+
 type SendOptions struct {
 	// The content type should be specified, according to the STOMP specification, but if contentType is an empty
 	// string, the message will be delivered without a content-type header entry.
@@ -17,9 +22,9 @@ type SendOptions struct {
 	// https://pkg.go.dev/github.com/go-stomp/stomp/frame
 	FrameOpts []func(*frame.Frame) error
 
-	BeforeSend func(destination string, body []byte, init time.Time)
+	BeforeSend func(identifier string, destinationType string, destinationName string, body []byte, startTime time.Time)
 
-	AfterSend func(destination string, body []byte, init time.Time, err error)
+	AfterSend func(identifier string, destinationType string, destinationName string, body []byte, startTime time.Time, err error)
 
 	// the name of the CircuitBreaker.
 	// Default is empty

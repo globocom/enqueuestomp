@@ -7,7 +7,8 @@ import (
 )
 
 const (
-	defaultRetriesConnect = 3
+	defaultRetriesConnect    = 3
+	defaultMaxRetriesConnect = 5
 )
 
 type Config struct {
@@ -28,11 +29,23 @@ type Config struct {
 	// Default is runtime.NumCPU()
 	MaxWorkers int
 
-	// Default is 3
+	// Default is 3, Max 5
 	RetriesConnect int
 
 	// Default is ExponentialBackoff
 	BackoffConnect BackoffStrategy
+}
+
+func NewConfig(addr string, retriesConnect int, maxWorkers int, connOptions ...func(*stomp.Conn) error) Config {
+	config := Config{
+		Addr: addr,
+	}
+
+	if len(connOptions) != 0 {
+		config.ConnOptions = connOptions
+	}
+
+	return config
 }
 
 func (c *Config) init() {
@@ -50,6 +63,8 @@ func (c *Config) init() {
 
 	if c.RetriesConnect < 1 {
 		c.RetriesConnect = defaultRetriesConnect
+	} else if c.RetriesConnect > defaultMaxRetriesConnect {
+		c.RetriesConnect = defaultMaxRetriesConnect
 	}
 
 	if c.BackoffConnect == nil {
