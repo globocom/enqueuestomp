@@ -1,3 +1,8 @@
+/*
+* MIT License
+*
+* Copyright (c) 2020 Globo.com
+ */
 package enqueuestomp
 
 import (
@@ -17,7 +22,7 @@ import (
 var (
 	ErrEmptyPayload = errors.New("empty payload")
 	ErrEmptyQueue   = errors.New("empty queue")
-	ErrEmptyTopic   = errors.New("mpty topic")
+	ErrEmptyTopic   = errors.New("empty topic")
 )
 
 type EnqueueStomp struct {
@@ -47,6 +52,7 @@ func NewEnqueueStomp(config Config) (*EnqueueStomp, error) {
 	return emq, nil
 }
 
+// SendQueue
 // The body array contains the message body,
 // and its content should be consistent with the specified content type.
 func (emq *EnqueueStomp) SendQueue(queue string, body []byte, so SendOptions) error {
@@ -56,6 +62,7 @@ func (emq *EnqueueStomp) SendQueue(queue string, body []byte, so SendOptions) er
 	return emq.send(destinationTypeQueue, queue, body, so)
 }
 
+// SendTopic
 // The body array contains the message body,
 // and its content should be consistent with the specified content type.
 func (emq *EnqueueStomp) SendTopic(topic string, body []byte, so SendOptions) error {

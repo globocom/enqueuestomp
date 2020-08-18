@@ -1,3 +1,8 @@
+/*
+* MIT License
+*
+* Copyright (c) 2020 Globo.com
+ */
 package enqueuestomp
 
 import (
