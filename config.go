@@ -25,12 +25,12 @@ type Config struct {
 	Addr string
 
 	// stomp.ConnOpt
-	ConnOptions []func(*stomp.Conn) error
+	// https://pkg.go.dev/github.com/go-stomp/stomp
+	Options []func(*stomp.Conn) error
 
 	// The maxWorkers parameter specifies the maximum number of workers that can
 	// execute tasks concurrently.  When there are no incoming tasks, workers are
 	// gradually stopped until there are no remaining workers.
-	// https://pkg.go.dev/github.com/go-stomp/stomp
 	// Default is runtime.NumCPU()
 	MaxWorkers int
 
@@ -39,18 +39,17 @@ type Config struct {
 
 	// Default is ExponentialBackoff
 	BackoffConnect BackoffStrategy
+
+	// Enabled output file in disk
+	// Default is false
+	WriteOnDisk bool
+
+	// WriteOutputPath is file path to write logging output to.
+	WriteOutputPath string
 }
 
-func NewConfig(addr string, retriesConnect int, maxWorkers int, connOptions ...func(*stomp.Conn) error) Config {
-	config := Config{
-		Addr: addr,
-	}
-
-	if len(connOptions) != 0 {
-		config.ConnOptions = connOptions
-	}
-
-	return config
+func (c *Config) AddOpts(opts ...func(*stomp.Conn) error) {
+	c.Options = opts
 }
 
 func (c *Config) init() {

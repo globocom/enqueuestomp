@@ -2,10 +2,24 @@ package enqueuestomp_test
 
 import (
 	"runtime"
+	"strconv"
 	"time"
 
 	"github.com/globocom/enqueuestomp"
+	"github.com/go-stomp/stomp"
 	check "gopkg.in/check.v1"
+)
+
+var (
+	// Queue.
+	queueName            = "testQueue"
+	queueBody            = []byte("bodyQueue")
+	queueWriteOutputPath = "enqueuestompQueue.log"
+
+	// Topic.
+	topicName            = "testTopic"
+	topicBody            = []byte("bodyTopic")
+	topicWriteOutputPath = "enqueuestompTopic.log"
 )
 
 func (s *EnqueueStompSuite) TestDefaultConfig(c *check.C) {
@@ -97,35 +111,50 @@ func (s *EnqueueStompSuite) TestFailtConnect2(c *check.C) {
 }
 
 func (s *EnqueueStompSuite) TestFailtConnect3(c *check.C) {
-	configEnqueue := enqueuestomp.Config{
-		Network:        "xpto",
-		RetriesConnect: 1,
-	}
 	_, err := enqueuestomp.NewEnqueueStomp(
-		configEnqueue,
+		enqueuestomp.Config{
+			Network:        "xpto",
+			RetriesConnect: 1,
+		},
 	)
 	c.Assert(err, check.NotNil)
 }
 
 func (s *EnqueueStompSuite) TestSendQueue(c *check.C) {
-	configEnqueue := enqueuestomp.NewConfig("localhost:61613", 1, 1)
 	enqueue, err := enqueuestomp.NewEnqueueStomp(
-		configEnqueue,
+		enqueuestomp.Config{},
 	)
 	c.Assert(err, check.IsNil)
 
-	queueName := "testeStomp"
-	body := []byte("bodyStomp")
 	so := enqueuestomp.SendOptions{}
-	err = enqueue.SendQueue(queueName, body, so)
-
+	err = enqueue.SendQueue(queueName, queueBody, so)
 	c.Assert(err, check.IsNil)
+	s.waitQueueSize(enqueue)
+
+	enqueueCount := s.j.StatQueue(queueName, "EnqueueCount")
+	c.Assert(enqueueCount, check.Equals, "1")
+}
+
+func (s *EnqueueStompSuite) TestSendQueueWritePersistent(c *check.C) {
+	enqueue, err := enqueuestomp.NewEnqueueStomp(
+		enqueuestomp.Config{},
+	)
+	c.Assert(err, check.IsNil)
+
+	so := enqueuestomp.SendOptions{}
+	so.AddOpts(stomp.SendOpt.Header("persistent", "true"))
+
+	err = enqueue.SendQueue(queueName, queueBody, so)
+	c.Assert(err, check.IsNil)
+	s.waitQueueSize(enqueue)
+
+	enqueueCount := s.j.StatQueue(queueName, "EnqueueCount")
+	c.Assert(enqueueCount, check.Equals, "1")
 }
 
 func (s *EnqueueStompSuite) TestSendQueueWithCircuitBreaker(c *check.C) {
-	configEnqueue := enqueuestomp.NewConfig("localhost:61613", 1, 1)
 	enqueue, err := enqueuestomp.NewEnqueueStomp(
-		configEnqueue,
+		enqueuestomp.Config{},
 	)
 	c.Assert(err, check.IsNil)
 
@@ -134,11 +163,79 @@ func (s *EnqueueStompSuite) TestSendQueueWithCircuitBreaker(c *check.C) {
 		enqueuestomp.CircuitBreakerConfig{},
 	)
 
-	queueName := "testeStomp"
-	body := []byte("bodyStomp")
 	so := enqueuestomp.SendOptions{
 		CircuitName: "circuit-enqueuestomp",
 	}
-	err = enqueue.SendQueue(queueName, body, so)
+	err = enqueue.SendQueue(queueName, queueBody, so)
+	c.Assert(err, check.IsNil)
+	s.waitQueueSize(enqueue)
 
+	enqueueCount := s.j.StatQueue(queueName, "EnqueueCount")
+	c.Assert(enqueueCount, check.Equals, "1")
+}
+
+func (s *EnqueueStompSuite) TestSendQueueWithWriteDisk(c *check.C) {
+	enqueue, err := enqueuestomp.NewEnqueueStomp(
+		enqueuestomp.Config{
+			WriteOnDisk:     true,
+			WriteOutputPath: queueWriteOutputPath,
+		},
+	)
+	c.Assert(err, check.IsNil)
+
+	total := 100
+	for i := 0; i < total; i++ {
+		so := enqueuestomp.SendOptions{}
+		err = enqueue.SendQueue(queueName, queueBody, so)
+		c.Assert(err, check.IsNil)
+	}
+	s.waitQueueSize(enqueue)
+
+	lines := s.countFileLines(enqueue.Config().WriteOutputPath)
+	c.Assert(lines, check.Equals, total*2)
+
+	enqueueCount := s.j.StatQueue(queueName, "EnqueueCount")
+	c.Assert(enqueueCount, check.Equals, strconv.Itoa(total))
+}
+
+func (s *EnqueueStompSuite) TestSendTopic(c *check.C) {
+	enqueue, err := enqueuestomp.NewEnqueueStomp(
+		enqueuestomp.Config{},
+	)
+	c.Assert(err, check.IsNil)
+
+	total := 100
+	for i := 0; i < total; i++ {
+		so := enqueuestomp.SendOptions{}
+		err = enqueue.SendTopic(topicName, topicBody, so)
+		c.Assert(err, check.IsNil)
+	}
+	s.waitQueueSize(enqueue)
+
+	enqueueCount := s.j.StatTopic(topicName, "EnqueueCount")
+	c.Assert(enqueueCount, check.Equals, strconv.Itoa(total))
+}
+
+func (s *EnqueueStompSuite) TestSendTopicWithWriteDisk(c *check.C) {
+	enqueue, err := enqueuestomp.NewEnqueueStomp(
+		enqueuestomp.Config{
+			WriteOnDisk:     true,
+			WriteOutputPath: topicWriteOutputPath,
+		},
+	)
+	c.Assert(err, check.IsNil)
+
+	total := 100
+	for i := 0; i < total; i++ {
+		so := enqueuestomp.SendOptions{}
+		err = enqueue.SendTopic(topicName, topicBody, so)
+		c.Assert(err, check.IsNil)
+	}
+	s.waitQueueSize(enqueue)
+
+	lines := s.countFileLines(enqueue.Config().WriteOutputPath)
+	c.Assert(lines, check.Equals, total*2)
+
+	enqueueCount := s.j.StatTopic(topicName, "EnqueueCount")
+	c.Assert(enqueueCount, check.Equals, strconv.Itoa(total))
 }

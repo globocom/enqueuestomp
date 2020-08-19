@@ -12,8 +12,8 @@ import (
 )
 
 const (
-	destinationTypeQueue = "queue"
-	destinationTypeTopic = "topic"
+	DestinationTypeQueue = "queue"
+	DestinationTypeTopic = "topic"
 )
 
 type SendOptions struct {
@@ -25,7 +25,7 @@ type SendOptions struct {
 	// Any number of options can be specified in opts. See the examples for usage. Options include whether
 	// to receive a RECEIPT, should the content-length be suppressed, and sending custom header entries.
 	// https://pkg.go.dev/github.com/go-stomp/stomp/frame
-	FrameOpts []func(*frame.Frame) error
+	Options []func(*frame.Frame) error
 
 	BeforeSend func(identifier string, destinationType string, destinationName string, body []byte, startTime time.Time)
 
@@ -34,6 +34,10 @@ type SendOptions struct {
 	// the name of the CircuitBreaker.
 	// Default is empty
 	CircuitName string
+}
+
+func (so *SendOptions) AddOpts(opts ...func(*frame.Frame) error) {
+	so.Options = opts
 }
 
 func (so *SendOptions) init() {

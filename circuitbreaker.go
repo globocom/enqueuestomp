@@ -88,7 +88,7 @@ func (emq *EnqueueStomp) sendWithCircuitBreaker(circuitName string, destination 
 		logger.Print(
 			"[EnqueueStomp] send message with CircuitBreaker\n",
 		)
-		return emq.conn.Send(destination, so.ContentType, body, so.FrameOpts...)
+		return emq.conn.Send(destination, so.ContentType, body, so.Options...)
 	}, nil)
 
 	return err
