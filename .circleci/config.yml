@@ -1,0 +1,23 @@
+# Golang CircleCI 2.0 configuration file
+#
+# Check https://circleci.com/docs/2.0/language-go/ for more details
+version: 2
+
+jobs:
+  build:
+    docker:
+      - image: circleci/golang:1.13
+      - image: rmohr/activemq:5.15.9-alpine
+
+    environment:
+      GO111MODULE: "on"
+
+    working_directory: /go/src/github.com/globocom/enqueuestomp
+
+    steps:
+      - checkout
+      - run:
+          name: "Test"
+          command: |
+            sleep 5 && nc -vz localhost 8161 && nc -vz localhost 61613
+            make ci
