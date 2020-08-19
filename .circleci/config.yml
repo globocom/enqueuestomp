@@ -20,4 +20,4 @@ jobs:
       - run:
           name: "Test"
           command: |
-            make start-activemq
+            make test
