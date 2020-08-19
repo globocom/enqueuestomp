@@ -23,3 +23,4 @@ jobs:
             docker ps
             env
             curl --retry 2 --retry-connrefused http://localhost:8161
+            make test
