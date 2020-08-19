@@ -1,8 +1,11 @@
 /*
+* enqueuestomp
+*
 * MIT License
 *
 * Copyright (c) 2020 Globo.com
  */
+
 package enqueuestomp_test
 
 import (
