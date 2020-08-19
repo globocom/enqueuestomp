@@ -1,4 +1,4 @@
-CONTAINER_NAME := enqueuestomp-activemq
+CONTAINER_NAME := enqueuestomp_activemq
 
 start-activemq:
 	@echo "start container..."

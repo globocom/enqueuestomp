@@ -22,5 +22,4 @@ jobs:
             make start-activemq
             docker ps
             env
-            curl --retry 2 --retry-connrefused http://localhost:8161
-            curl --retry 2 --retry-connrefused http://127.0.0.1:8161
+            curl --retry 2 --retry-connrefused http://enqueuestomp_activemq:8161
