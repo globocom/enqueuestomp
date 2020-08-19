@@ -20,7 +20,5 @@ jobs:
       - run:
           name: "Test"
           command: |
-            docker ps
-            env
-            curl --retry 2 --retry-connrefused http://localhost:8161
+            sleep 5 && nc -vz localhost 8161 && nc -vz localhost 61613
             make test
