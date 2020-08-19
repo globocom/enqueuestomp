@@ -7,6 +7,7 @@ jobs:
   build:
     docker:
       - image: circleci/golang:1.13
+      - image: rmohr/activemq:5.15.9-alpine
 
     environment:
       GO111MODULE: "on"
@@ -21,4 +22,4 @@ jobs:
           command: |
             docker ps
             env
-            curl --retry 2 --retry-connrefused http://activemq:8161
+            curl --retry 2 --retry-connrefused http://localhost:8161
