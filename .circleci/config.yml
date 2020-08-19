@@ -7,6 +7,8 @@ jobs:
   build:
     docker:
       - image: circleci/golang:1.13
+      - image: rmohr/activemq:5.15.9-alpine
+        name: activemq
 
     environment:
       GO111MODULE: "on"
@@ -19,7 +21,6 @@ jobs:
       - run:
           name: "Test"
           command: |
-            make start-activemq
             docker ps
             env
-            curl --retry 2 --retry-connrefused http://enqueuestomp_activemq:8161
+            curl --retry 2 --retry-connrefused http://activemq:8161
