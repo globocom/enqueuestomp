@@ -7,8 +7,6 @@ jobs:
   build:
     docker:
       - image: circleci/golang:1.13
-      - image: rmohr/activemq:5.15.9-alpine
-        name: activemq
 
     environment:
       GO111MODULE: "on"
