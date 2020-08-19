@@ -14,3 +14,6 @@ test:
 		$(MAKE) start-activemq; \
 	fi; \
 	go test -v -count=1 -cover -race ./...
+
+ci:
+	go test -count=1 -cover -race ./...

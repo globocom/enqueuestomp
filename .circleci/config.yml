@@ -16,9 +16,8 @@ jobs:
 
     steps:
       - checkout
-      - setup_remote_docker
       - run:
           name: "Test"
           command: |
             sleep 5 && nc -vz localhost 8161 && nc -vz localhost 61613
-            make test
+            make ci
