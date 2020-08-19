@@ -10,16 +10,9 @@ stop-activemq:
 		docker container rm -f $(CONTAINER_MQ);\
 	fi; \
 
-start-dashboard:
-	docker container run -d --rm --name hystrix-dashboard -p 8082:9002 mlabouardy/hystrix-dashboard:latest
-
-stop-dashboard:
-	docker container rm -f hystrix-dashboard
-
-
 test:
 	@if [ ! "$(CONTAINER_MQ)" ]; then \
 		$(MAKE) start-activemq; \
 		sleep 5; \
 	fi; \
-	go test -v -count=1 -cover ./...
+	go test -v -count=1 -cover -race ./...
