@@ -15,9 +15,11 @@ jobs:
 
     steps:
       - checkout
-      - setup_remote_docker
+      - setup_remote_docker:
+          docker_layer_caching: true
 
       - run:
           name: "Test"
           command: |
-            make test
+            start-activemq
+            docker ps
