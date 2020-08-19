@@ -19,4 +19,4 @@ jobs:
       - run:
           name: "Test"
           command: |
-            which docker
+            make start-activemq
