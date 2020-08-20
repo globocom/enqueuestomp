@@ -94,6 +94,10 @@ func (emq *EnqueueStomp) Config() Config {
 	return emq.config
 }
 
+func (emq *EnqueueStomp) Disconnect() error {
+	return emq.conn.Disconnect()
+}
+
 func (emq *EnqueueStomp) send(destinationType string, destinationName string, body []byte, sc SendConfig) error {
 	if len(body) == 0 {
 		return ErrEmptyBody

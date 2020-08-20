@@ -379,3 +379,13 @@ func (s *EnqueueStompSuite) TestSendTopicWithWriteDisk(c *check.C) {
 	enqueueCount := s.j.StatTopic(topicName, "EnqueueCount")
 	c.Assert(enqueueCount, check.Equals, strconv.Itoa(total))
 }
+
+func (s *EnqueueStompSuite) TestDisconnect(c *check.C) {
+	enqueue, err := enqueuestomp.NewEnqueueStomp(
+		enqueuestomp.Config{},
+	)
+	c.Assert(err, check.IsNil)
+
+	err = enqueue.Disconnect()
+	c.Assert(err, check.IsNil)
+}
