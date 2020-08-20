@@ -178,6 +178,50 @@ func (s *EnqueueStompSuite) TestSendQueue(c *check.C) {
 	c.Assert(enqueueCount, check.Equals, "1")
 }
 
+func (s *EnqueueStompSuite) TestSendQueueBodyEmpty(c *check.C) {
+	enqueue, err := enqueuestomp.NewEnqueueStomp(
+		enqueuestomp.Config{},
+	)
+	c.Assert(err, check.IsNil)
+
+	so := enqueuestomp.SendOptions{}
+	err = enqueue.SendQueue(queueName, nil, so)
+	c.Assert(err, check.Equals, enqueuestomp.ErrEmptyBody)
+}
+
+func (s *EnqueueStompSuite) TestSendTopicBodyEmpty(c *check.C) {
+	enqueue, err := enqueuestomp.NewEnqueueStomp(
+		enqueuestomp.Config{},
+	)
+	c.Assert(err, check.IsNil)
+
+	so := enqueuestomp.SendOptions{}
+	err = enqueue.SendTopic(topicName, nil, so)
+	c.Assert(err, check.Equals, enqueuestomp.ErrEmptyBody)
+}
+
+func (s *EnqueueStompSuite) TestSendQueueNameEmpty(c *check.C) {
+	enqueue, err := enqueuestomp.NewEnqueueStomp(
+		enqueuestomp.Config{},
+	)
+	c.Assert(err, check.IsNil)
+
+	so := enqueuestomp.SendOptions{}
+	err = enqueue.SendQueue("", queueBody, so)
+	c.Assert(err, check.Equals, enqueuestomp.ErrEmptyQueueName)
+}
+
+func (s *EnqueueStompSuite) TestSendTopicNameEmpty(c *check.C) {
+	enqueue, err := enqueuestomp.NewEnqueueStomp(
+		enqueuestomp.Config{},
+	)
+	c.Assert(err, check.IsNil)
+
+	so := enqueuestomp.SendOptions{}
+	err = enqueue.SendTopic("", topicBody, so)
+	c.Assert(err, check.Equals, enqueuestomp.ErrEmptyTopicName)
+}
+
 func (s *EnqueueStompSuite) TestSendQueueWritePersistent(c *check.C) {
 	enqueue, err := enqueuestomp.NewEnqueueStomp(
 		enqueuestomp.Config{},
@@ -220,7 +264,6 @@ func (s *EnqueueStompSuite) TestSendQueueWithCircuitBreaker(c *check.C) {
 func (s *EnqueueStompSuite) TestSendQueueWithWriteDisk(c *check.C) {
 	enqueue, err := enqueuestomp.NewEnqueueStomp(
 		enqueuestomp.Config{
-			WriteOnDisk:     true,
 			WriteOutputPath: queueWriteOutputPath,
 		},
 	)
@@ -262,7 +305,6 @@ func (s *EnqueueStompSuite) TestSendTopic(c *check.C) {
 func (s *EnqueueStompSuite) TestSendTopicWithWriteDisk(c *check.C) {
 	enqueue, err := enqueuestomp.NewEnqueueStomp(
 		enqueuestomp.Config{
-			WriteOnDisk:     true,
 			WriteOutputPath: topicWriteOutputPath,
 		},
 	)

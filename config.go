@@ -27,7 +27,6 @@ type Config struct {
 	// Default is localhost:61613
 	Addr string
 
-	// stomp.ConnOpt
 	// https://pkg.go.dev/github.com/go-stomp/stomp
 	Options []func(*stomp.Conn) error
 
@@ -40,17 +39,15 @@ type Config struct {
 	// Default is 3, Max is 5
 	RetriesConnect int
 
+	// Used to determine how long a retry request should wait until attempted.
 	// Default is ExponentialBackoff
 	BackoffConnect BackoffStrategy
-
-	// Enabled output file in disk
-	// Default is false
-	WriteOnDisk bool
 
 	// File path to write logging output to
 	WriteOutputPath string
 
-	// Logger that will be used. By default prints nothing.
+	// Logger that will be used
+	// Default is nothing
 	Logger Logger
 }
 

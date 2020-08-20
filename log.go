@@ -9,8 +9,6 @@
 package enqueuestomp
 
 import (
-	"fmt"
-
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
@@ -30,12 +28,8 @@ func (l NoopLogger) Debugf(template string, args ...interface{}) {}
 func (l NoopLogger) Errorf(template string, args ...interface{}) {}
 
 func (emq *EnqueueStomp) createOutput() (err error) {
-	if !emq.config.WriteOnDisk {
-		return nil
-	}
-
 	if emq.config.WriteOutputPath == "" {
-		emq.config.WriteOutputPath = fmt.Sprintf("enqueuestomp-%s.log", emq.id)
+		return nil
 	}
 
 	config := zap.Config{
@@ -51,7 +45,10 @@ func (emq *EnqueueStomp) createOutput() (err error) {
 	}
 	config.EncoderConfig.EncodeTime = zapcore.RFC3339NanoTimeEncoder
 
-	emq.output, err = config.Build()
+	if emq.output, err = config.Build(); err == nil {
+		emq.hasOutput = true
+	}
+
 	return err
 }
 

@@ -23,9 +23,9 @@ import (
 )
 
 var (
-	ErrEmptyBody  = errors.New("empty body")
-	ErrEmptyQueue = errors.New("empty queue")
-	ErrEmptyTopic = errors.New("empty topic")
+	ErrEmptyBody      = errors.New("empty body")
+	ErrEmptyQueueName = errors.New("empty queue name")
+	ErrEmptyTopicName = errors.New("empty topic name")
 )
 
 type EnqueueStomp struct {
@@ -36,6 +36,7 @@ type EnqueueStomp struct {
 	wp           *workerpool.WorkerPool
 	circuitNames map[string]string
 	connected    int32
+	hasOutput    bool
 	output       *zap.Logger
 	log          Logger
 }
@@ -67,22 +68,22 @@ func NewEnqueueStomp(config Config) (*EnqueueStomp, error) {
 // SendQueue
 // The body array contains the message body,
 // and its content should be consistent with the specified content type.
-func (emq *EnqueueStomp) SendQueue(queue string, body []byte, so SendOptions) error {
-	if queue == "" || strings.TrimSpace(queue) == "" {
-		return ErrEmptyQueue
+func (emq *EnqueueStomp) SendQueue(queueName string, body []byte, so SendOptions) error {
+	if queueName == "" || strings.TrimSpace(queueName) == "" {
+		return ErrEmptyQueueName
 	}
-	return emq.send(DestinationTypeQueue, queue, body, so)
+	return emq.send(DestinationTypeQueue, queueName, body, so)
 }
 
 // SendTopic
 // The body array contains the message body,
 // and its content should be consistent with the specified content type.
-func (emq *EnqueueStomp) SendTopic(topic string, body []byte, so SendOptions) error {
-	if topic == "" || strings.TrimSpace(topic) == "" {
-		return ErrEmptyTopic
+func (emq *EnqueueStomp) SendTopic(topicName string, body []byte, so SendOptions) error {
+	if topicName == "" || strings.TrimSpace(topicName) == "" {
+		return ErrEmptyTopicName
 	}
 
-	return emq.send(DestinationTypeTopic, topic, body, so)
+	return emq.send(DestinationTypeTopic, topicName, body, so)
 }
 
 func (emq *EnqueueStomp) QueueSize() int {
@@ -101,7 +102,7 @@ func (emq *EnqueueStomp) send(destinationType string, destinationName string, bo
 
 	identifier := makeIdentifier()
 
-	if emq.config.WriteOnDisk {
+	if emq.hasOutput {
 		emq.writeOutput("before", identifier, destinationType, destinationName, body)
 	}
 
@@ -140,7 +141,7 @@ func (emq *EnqueueStomp) send(destinationType string, destinationName string, bo
 			}
 		}
 
-		if emq.config.WriteOnDisk {
+		if emq.hasOutput {
 			emq.writeOutput("after", identifier, destinationType, destinationName, body)
 		}
 
