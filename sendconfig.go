@@ -19,7 +19,7 @@ const (
 	DestinationTypeTopic = "topic"
 )
 
-type SendOptions struct {
+type SendConfig struct {
 	// The content type should be specified, according to the STOMP specification, but if contentType is an empty
 	// string, the message will be delivered without a content-type header entry.
 	// Default is text/plain.
@@ -39,12 +39,12 @@ type SendOptions struct {
 	CircuitName string
 }
 
-func (so *SendOptions) AddOptions(opts ...func(*frame.Frame) error) {
-	so.Options = opts
+func (sc *SendConfig) AddOptions(opts ...func(*frame.Frame) error) {
+	sc.Options = opts
 }
 
-func (so *SendOptions) init() {
-	if so.ContentType == "" {
-		so.ContentType = "text/plain"
+func (sc *SendConfig) init() {
+	if sc.ContentType == "" {
+		sc.ContentType = "text/plain"
 	}
 }

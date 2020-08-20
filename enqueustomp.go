@@ -68,22 +68,22 @@ func NewEnqueueStomp(config Config) (*EnqueueStomp, error) {
 // SendQueue
 // The body array contains the message body,
 // and its content should be consistent with the specified content type.
-func (emq *EnqueueStomp) SendQueue(queueName string, body []byte, so SendOptions) error {
+func (emq *EnqueueStomp) SendQueue(queueName string, body []byte, sc SendConfig) error {
 	if queueName == "" || strings.TrimSpace(queueName) == "" {
 		return ErrEmptyQueueName
 	}
-	return emq.send(DestinationTypeQueue, queueName, body, so)
+	return emq.send(DestinationTypeQueue, queueName, body, sc)
 }
 
 // SendTopic
 // The body array contains the message body,
 // and its content should be consistent with the specified content type.
-func (emq *EnqueueStomp) SendTopic(topicName string, body []byte, so SendOptions) error {
+func (emq *EnqueueStomp) SendTopic(topicName string, body []byte, sc SendConfig) error {
 	if topicName == "" || strings.TrimSpace(topicName) == "" {
 		return ErrEmptyTopicName
 	}
 
-	return emq.send(DestinationTypeTopic, topicName, body, so)
+	return emq.send(DestinationTypeTopic, topicName, body, sc)
 }
 
 func (emq *EnqueueStomp) QueueSize() int {
@@ -94,11 +94,11 @@ func (emq *EnqueueStomp) Config() Config {
 	return emq.config
 }
 
-func (emq *EnqueueStomp) send(destinationType string, destinationName string, body []byte, so SendOptions) error {
+func (emq *EnqueueStomp) send(destinationType string, destinationName string, body []byte, sc SendConfig) error {
 	if len(body) == 0 {
 		return ErrEmptyBody
 	}
-	so.init()
+	sc.init()
 
 	identifier := makeIdentifier()
 	emq.writeOutput("before", identifier, destinationType, destinationName, body)
@@ -108,19 +108,19 @@ func (emq *EnqueueStomp) send(destinationType string, destinationName string, bo
 		startTime := time.Now()
 		destination := fmt.Sprintf("/%s/%s", destinationType, destinationName)
 
-		if so.BeforeSend != nil {
-			so.BeforeSend(identifier, destinationType, destinationName, body, startTime)
+		if sc.BeforeSend != nil {
+			sc.BeforeSend(identifier, destinationType, destinationName, body, startTime)
 		}
 
 	Retry:
-		if emq.hasCircuitBreaker(so) {
-			err = emq.sendWithCircuitBreaker(identifier, destination, body, so)
+		if emq.hasCircuitBreaker(sc) {
+			err = emq.sendWithCircuitBreaker(identifier, destination, body, sc)
 		} else {
 			emq.debugLogger(
 				"[enqueuestomp][%s] Send message with destination: `%s` and body: `%s`",
 				identifier, destination, body,
 			)
-			err = emq.conn.Send(destination, so.ContentType, body, so.Options...)
+			err = emq.conn.Send(destination, sc.ContentType, body, sc.Options...)
 		}
 
 		if errors.Is(err, stomp.ErrAlreadyClosed) || errors.Is(err, stomp.ErrClosedUnexpectedly) {
@@ -139,8 +139,8 @@ func (emq *EnqueueStomp) send(destinationType string, destinationName string, bo
 		}
 
 		emq.writeOutput("after", identifier, destinationType, destinationName, body)
-		if so.AfterSend != nil {
-			so.AfterSend(identifier, destinationType, destinationName, body, startTime, err)
+		if sc.AfterSend != nil {
+			sc.AfterSend(identifier, destinationType, destinationName, body, startTime, err)
 		}
 	})
 
