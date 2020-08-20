@@ -64,9 +64,9 @@ func (emq *EnqueueStomp) writeOutput(action string, identifier string, destinati
 }
 
 func (emq *EnqueueStomp) debugLogger(template string, args ...interface{}) {
-	emq.log.Debugf(template, args)
+	emq.log.Debugf(template, args...)
 }
 
 func (emq *EnqueueStomp) errorLogger(template string, args ...interface{}) {
-	emq.log.Errorf(template, args)
+	emq.log.Errorf(template, args...)
 }

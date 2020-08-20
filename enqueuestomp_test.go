@@ -15,6 +15,7 @@ import (
 
 	"github.com/globocom/enqueuestomp"
 	"github.com/go-stomp/stomp"
+	"go.uber.org/zap"
 	check "gopkg.in/check.v1"
 )
 
@@ -420,6 +421,23 @@ func (s *EnqueueStompSuite) TestConfigOptions(c *check.C) {
 	)
 	c.Assert(enqueueConfig.Options, check.HasLen, 2)
 
+	enqueue, err := enqueuestomp.NewEnqueueStomp(enqueueConfig)
+	c.Assert(err, check.IsNil)
+
+	sc := enqueuestomp.SendConfig{}
+	err = enqueue.SendQueue(queueName, queueBody, sc)
+	c.Assert(err, check.IsNil)
+	s.waitQueueSize(enqueue)
+
+	enqueueCount := s.j.StatQueue(queueName, "EnqueueCount")
+	c.Assert(enqueueCount, check.Equals, "1")
+}
+
+func (s *EnqueueStompSuite) TestSendConfigLogger(c *check.C) {
+	sugar := zap.NewExample().Sugar()
+	enqueueConfig := enqueuestomp.Config{
+		Logger: sugar,
+	}
 	enqueue, err := enqueuestomp.NewEnqueueStomp(enqueueConfig)
 	c.Assert(err, check.IsNil)
 
