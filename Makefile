@@ -20,6 +20,7 @@ test-coverage:
 		$(MAKE) start-activemq; \
 	fi; \
 	go test -v -count=1 -race -cover -covermode atomic -coverprofile coverage.out ./...
+	go tool cover -func=coverage.out
 	go tool cover -html=coverage.out
 
 ci:

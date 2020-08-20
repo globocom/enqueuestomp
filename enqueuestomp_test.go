@@ -42,6 +42,7 @@ func (s *EnqueueStompSuite) TestDefaultConfig(c *check.C) {
 	c.Assert(config.MaxWorkers, check.Equals, runtime.NumCPU())
 	c.Assert(config.RetriesConnect, check.Equals, 3)
 	c.Assert(config.BackoffConnect, check.NotNil)
+	c.Assert(config.Options, check.IsNil)
 	for i := 1; i < 3; i++ {
 		c.Assert(config.BackoffConnect(i), check.Equals, time.Duration(i*2)*enqueuestomp.DefaultInitialBackOff)
 	}
@@ -66,6 +67,7 @@ func (s *EnqueueStompSuite) TestConfigLinearBackoff(c *check.C) {
 	c.Assert(config.MaxWorkers, check.Equals, configEnqueue.MaxWorkers)
 	c.Assert(config.RetriesConnect, check.Equals, configEnqueue.RetriesConnect)
 	c.Assert(config.BackoffConnect, check.NotNil)
+	c.Assert(config.Options, check.IsNil)
 	for i := 1; i < 3; i++ {
 		c.Assert(config.BackoffConnect(i), check.Equals, time.Duration(i)*enqueuestomp.DefaultInitialBackOff)
 	}
@@ -90,12 +92,13 @@ func (s *EnqueueStompSuite) TestConfigConstantBackOff(c *check.C) {
 	c.Assert(config.MaxWorkers, check.Equals, configEnqueue.MaxWorkers)
 	c.Assert(config.RetriesConnect, check.Equals, configEnqueue.RetriesConnect)
 	c.Assert(config.BackoffConnect, check.NotNil)
+	c.Assert(config.Options, check.IsNil)
 	for i := 1; i < 3; i++ {
 		c.Assert(config.BackoffConnect(i), check.Equals, enqueuestomp.DefaultInitialBackOff)
 	}
 }
 
-func (s *EnqueueStompSuite) TestConfigetriesConnect(c *check.C) {
+func (s *EnqueueStompSuite) TestConfigRetriesConnect(c *check.C) {
 	enqueue, err := enqueuestomp.NewEnqueueStomp(
 		enqueuestomp.Config{
 			RetriesConnect: 1,
@@ -142,6 +145,26 @@ func (s *EnqueueStompSuite) TestConfigMaxRetriesConnect(c *check.C) {
 	config := enqueue.Config()
 	c.Assert(config.RetriesConnect, check.Equals, 5)
 }
+func (s *EnqueueStompSuite) TestConfigWithOptions(c *check.C) {
+	enqueueConfig := enqueuestomp.Config{}
+	enqueueConfig.AddOptions(
+		stomp.ConnOpt.HeartBeat(0*time.Second, 0*time.Second),
+	)
+	enqueue, err := enqueuestomp.NewEnqueueStomp(enqueueConfig)
+	c.Assert(err, check.IsNil)
+
+	config := enqueue.Config()
+	c.Assert(config.Options, check.NotNil)
+}
+
+func (s *EnqueueStompSuite) TestConfigWithWriteOutputPathInvalid(c *check.C) {
+	_, err := enqueuestomp.NewEnqueueStomp(
+		enqueuestomp.Config{
+			WriteOutputPath: "/OutputPathDir/enqueuestomp/enqueuestomp.out",
+		},
+	)
+	c.Assert(err, check.NotNil)
+}
 
 func (s *EnqueueStompSuite) TestFailtConnectAddr(c *check.C) {
 	_, err := enqueuestomp.NewEnqueueStomp(
@@ -170,6 +193,37 @@ func (s *EnqueueStompSuite) TestSendQueue(c *check.C) {
 	c.Assert(err, check.IsNil)
 
 	so := enqueuestomp.SendOptions{}
+	err = enqueue.SendQueue(queueName, queueBody, so)
+	c.Assert(err, check.IsNil)
+	s.waitQueueSize(enqueue)
+
+	enqueueCount := s.j.StatQueue(queueName, "EnqueueCount")
+	c.Assert(enqueueCount, check.Equals, "1")
+}
+
+func (s *EnqueueStompSuite) TestSendQueueWithBeforeAfterSend(c *check.C) {
+	enqueue, err := enqueuestomp.NewEnqueueStomp(
+		enqueuestomp.Config{},
+	)
+	c.Assert(err, check.IsNil)
+
+	so := enqueuestomp.SendOptions{
+		BeforeSend: func(identifier string, destinationType string, destinationName string, body []byte, startTime time.Time) {
+			c.Assert(identifier, check.NotNil)
+			c.Assert(destinationType, check.Equals, enqueuestomp.DestinationTypeQueue)
+			c.Assert(destinationName, check.Equals, queueName)
+			c.Assert(string(body), check.Equals, string(queueBody))
+			c.Assert(startTime, check.NotNil)
+		},
+		AfterSend: func(identifier string, destinationType string, destinationName string, body []byte, startTime time.Time, err error) {
+			c.Assert(identifier, check.NotNil)
+			c.Assert(destinationType, check.Equals, enqueuestomp.DestinationTypeQueue)
+			c.Assert(destinationName, check.Equals, queueName)
+			c.Assert(string(body), check.Equals, string(queueBody))
+			c.Assert(startTime, check.NotNil)
+			c.Assert(err, check.IsNil)
+		},
+	}
 	err = enqueue.SendQueue(queueName, queueBody, so)
 	c.Assert(err, check.IsNil)
 	s.waitQueueSize(enqueue)

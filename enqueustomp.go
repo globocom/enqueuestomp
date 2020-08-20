@@ -58,7 +58,7 @@ func NewEnqueueStomp(config Config) (*EnqueueStomp, error) {
 	}
 
 	// create output write on disk
-	if err := emq.createOutput(); err != nil {
+	if err := emq.newOutput(); err != nil {
 		return nil, err
 	}
 
@@ -101,10 +101,7 @@ func (emq *EnqueueStomp) send(destinationType string, destinationName string, bo
 	so.init()
 
 	identifier := makeIdentifier()
-
-	if emq.hasOutput {
-		emq.writeOutput("before", identifier, destinationType, destinationName, body)
-	}
+	emq.writeOutput("before", identifier, destinationType, destinationName, body)
 
 	emq.wp.Submit(func() {
 		var err error
@@ -141,10 +138,7 @@ func (emq *EnqueueStomp) send(destinationType string, destinationName string, bo
 			}
 		}
 
-		if emq.hasOutput {
-			emq.writeOutput("after", identifier, destinationType, destinationName, body)
-		}
-
+		emq.writeOutput("after", identifier, destinationType, destinationName, body)
 		if so.AfterSend != nil {
 			so.AfterSend(identifier, destinationType, destinationName, body, startTime, err)
 		}
