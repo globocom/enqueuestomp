@@ -23,7 +23,7 @@ type Config struct {
 	// Default is tcp
 	Network string
 
-	// host:port address.
+	// host:port address
 	// Default is localhost:61613
 	Addr string
 
@@ -37,7 +37,7 @@ type Config struct {
 	// Default is runtime.NumCPU()
 	MaxWorkers int
 
-	// Default is 3, Max 5
+	// Default is 3, Max is 5
 	RetriesConnect int
 
 	// Default is ExponentialBackoff
@@ -47,8 +47,11 @@ type Config struct {
 	// Default is false
 	WriteOnDisk bool
 
-	// WriteOutputPath is file path to write logging output to.
+	// File path to write logging output to
 	WriteOutputPath string
+
+	// Logger that will be used. By default prints nothing.
+	Logger Logger
 }
 
 func (c *Config) AddOpts(opts ...func(*stomp.Conn) error) {
@@ -76,5 +79,9 @@ func (c *Config) init() {
 
 	if c.BackoffConnect == nil {
 		c.BackoffConnect = ExponentialBackoff
+	}
+
+	if c.Logger == nil {
+		c.Logger = NoopLogger{}
 	}
 }

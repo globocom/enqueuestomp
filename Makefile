@@ -3,7 +3,7 @@ CONTAINER_NAME := enqueuestomp_activemq
 start-activemq:
 	@echo "start container..."
 	docker container run -d --rm --name $(CONTAINER_NAME) -p 61613:61613 -p 61616:61616 -p 8161:8161  rmohr/activemq:5.15.9-alpine
-	@sleep 5
+	@sleep 10
 
 stop-activemq:
 	@echo "stop container..."
@@ -16,4 +16,5 @@ test:
 	go test -v -count=1 -cover -race ./...
 
 ci:
+	@sleep 10
 	go test -count=1 -cover -race ./...

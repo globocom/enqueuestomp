@@ -37,6 +37,7 @@ type EnqueueStomp struct {
 	circuitNames map[string]string
 	connected    int32
 	output       *zap.Logger
+	log          Logger
 }
 
 func NewEnqueueStomp(config Config) (*EnqueueStomp, error) {
@@ -47,6 +48,7 @@ func NewEnqueueStomp(config Config) (*EnqueueStomp, error) {
 		config:       config,
 		wp:           workerpool.New(config.MaxWorkers),
 		circuitNames: make(map[string]string),
+		log:          config.Logger,
 	}
 
 	// create connect
@@ -54,16 +56,9 @@ func NewEnqueueStomp(config Config) (*EnqueueStomp, error) {
 		return nil, err
 	}
 
-	// config write on disk
-	if emq.config.WriteOnDisk {
-		if emq.config.WriteOutputPath == "" {
-			emq.config.WriteOutputPath = fmt.Sprintf("enqueuestomp-%s.log", emq.id)
-		}
-
-		var err error
-		if emq.output, err = createOutputWriteOnDisk(emq.config.WriteOutputPath); err != nil {
-			return nil, err
-		}
+	// create output write on disk
+	if err := emq.createOutput(); err != nil {
+		return nil, err
 	}
 
 	return emq, nil
@@ -114,25 +109,33 @@ func (emq *EnqueueStomp) send(destinationType string, destinationName string, bo
 		var err error
 		startTime := time.Now()
 		destination := fmt.Sprintf("/%s/%s", destinationType, destinationName)
-		circuitName := emq.makeCircuitName(so.CircuitName)
 
 		if so.BeforeSend != nil {
 			so.BeforeSend(identifier, destinationType, destinationName, body, startTime)
 		}
 
 	Retry:
-		if emq.hasCircuitBreaker(circuitName) {
-			err = emq.sendWithCircuitBreaker(circuitName, destination, body, so)
+		if emq.hasCircuitBreaker(so) {
+			err = emq.sendWithCircuitBreaker(identifier, destination, body, so)
 		} else {
-			Printf(identifier, "Send message")
+			emq.debugLogger(
+				"[enqueuestomp][%s] Send message with destination: `%s` and body: `%s`",
+				identifier, destination, body,
+			)
 			err = emq.conn.Send(destination, so.ContentType, body, so.Options...)
 		}
 
 		if errors.Is(err, stomp.ErrAlreadyClosed) || errors.Is(err, stomp.ErrClosedUnexpectedly) {
-			Printf(identifier, "Connection error `%s`", err)
+			emq.errorLogger(
+				"[enqueuestomp][%s] Connection error `%s`",
+				identifier, err,
+			)
 			atomic.StoreInt32(&emq.connected, 0)
 			if err = emq.newConn(identifier); err == nil {
-				Printf(identifier, "Retry send...")
+				emq.debugLogger(
+					"[enqueuestomp][%s] Retry send...",
+					identifier,
+				)
 				goto Retry
 			}
 		}
@@ -161,35 +164,30 @@ func (emq *EnqueueStomp) newConn(identifier string) (err error) {
 	for i := 1; i <= emq.config.RetriesConnect; i++ {
 		conn, err = stomp.Dial(emq.config.Network, emq.config.Addr, emq.config.Options...)
 		if err == nil && conn != nil {
-			Printf(identifier, "Connected :: %s ", emq.config.Addr)
+			emq.debugLogger(
+				"[enqueuestomp][%s] Connected :: %s",
+				identifier, emq.config.Addr,
+			)
 			emq.conn = conn
 			atomic.StoreInt32(&emq.connected, 1)
 			return nil
 		}
 
 		timeSleep := emq.config.BackoffConnect(i)
-		Printf(identifier,
-			"IS OUT OF SERVICE :: %s :: A new conn was tried but failed - sleeping %s - %d/%d",
+		emq.errorLogger(
+			"[enqueuestomp][%s] Connected :: IS OUT OF SERVICE :: %s :: A new conn was tried but failed - sleeping %s - %d/%d",
+			identifier,
 			emq.config.Addr, timeSleep.String(), i, emq.config.RetriesConnect,
 		)
 		time.Sleep(timeSleep)
 	}
 
-	Printf(identifier,
-		"IS OUT OF SERVICE :: %s ::",
-		emq.config.Addr,
+	emq.errorLogger(
+		"[enqueuestomp][%s] IS OUT OF SERVICE :: %s",
+		identifier, emq.config.Addr,
 	)
 
 	return err
-}
-
-func (emq *EnqueueStomp) writeOutput(action string, identifier string, destinationType string, destinationName string, body []byte) {
-	emq.output.Info(action,
-		zap.String("identifier", identifier),
-		zap.String("destinationType", destinationType),
-		zap.String("destinationName", destinationName),
-		zap.ByteString("body", body),
-	)
 }
 
 func makeIdentifier() string {

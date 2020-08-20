@@ -18,7 +18,7 @@ type BackoffStrategy func(retry int) time.Duration
 
 const DefaultInitialBackOff = 100 * time.Millisecond
 
-// ConstantBackOff always returns 100 Millisecond.
+// ConstantBackOff always returns DefaultInitialBackOff.
 func ConstantBackOff(_ int) time.Duration {
 	return DefaultInitialBackOff
 }

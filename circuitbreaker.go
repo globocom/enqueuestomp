@@ -82,14 +82,12 @@ func (emq *EnqueueStomp) ConfigureCircuitBreaker(name string, cb CircuitBreakerC
 	emq.circuitNames[circuitName] = circuitName
 }
 
-func SetLogger() {
-	hystrix.SetLogger(logger)
-}
-
-func (emq *EnqueueStomp) sendWithCircuitBreaker(circuitName string, destination string, body []byte, so SendOptions) error {
+func (emq *EnqueueStomp) sendWithCircuitBreaker(identifier string, destination string, body []byte, so SendOptions) error {
+	circuitName := emq.makeCircuitName(so.CircuitName)
 	err := hystrix.Do(circuitName, func() error {
-		logger.Print(
-			"[EnqueueStomp] send message with CircuitBreaker\n",
+		emq.debugLogger(
+			"[enqueuestomp][%s] Send message with circuitBreaker: `%s` and destination: `%s` and body: `%s`",
+			identifier, so.CircuitName, destination, body,
 		)
 		return emq.conn.Send(destination, so.ContentType, body, so.Options...)
 	}, nil)
@@ -101,9 +99,12 @@ func (emq *EnqueueStomp) makeCircuitName(name string) string {
 	return fmt.Sprintf("%s::%s", name, emq.id)
 }
 
-func (emq *EnqueueStomp) hasCircuitBreaker(name string) bool {
-	_, found := emq.circuitNames[name]
+func (emq *EnqueueStomp) hasCircuitBreaker(so SendOptions) bool {
+	if so.CircuitName == "" {
+		return false
+	}
+
+	circuitName := emq.makeCircuitName(so.CircuitName)
+	_, found := emq.circuitNames[circuitName]
 	return found
 }
-
-//

@@ -10,21 +10,34 @@ package enqueuestomp
 
 import (
 	"fmt"
-	golog "log"
-	"os"
 
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
 
-var logger = golog.New(os.Stderr, "", golog.Ldate|golog.Ltime|golog.Lmicroseconds)
-
-func Printf(identifier string, format string, v ...interface{}) {
-	message := fmt.Sprintf(format, v...)
-	logger.Printf("[EnqueueStomp][%s] %s", identifier, message)
+type Logger interface {
+	Debugf(template string, args ...interface{})
+	Errorf(template string, args ...interface{})
 }
 
-func createOutputWriteOnDisk(outputPath string) (*zap.Logger, error) {
+// NoopLogger does not log anything.
+type NoopLogger struct{}
+
+// Debugf does nothing.
+func (l NoopLogger) Debugf(template string, args ...interface{}) {}
+
+// Errorf does nothing.
+func (l NoopLogger) Errorf(template string, args ...interface{}) {}
+
+func (emq *EnqueueStomp) createOutput() (err error) {
+	if !emq.config.WriteOnDisk {
+		return nil
+	}
+
+	if emq.config.WriteOutputPath == "" {
+		emq.config.WriteOutputPath = fmt.Sprintf("enqueuestomp-%s.log", emq.id)
+	}
+
 	config := zap.Config{
 		Level:            zap.NewAtomicLevelAt(zap.InfoLevel),
 		Development:      false,
@@ -33,9 +46,28 @@ func createOutputWriteOnDisk(outputPath string) (*zap.Logger, error) {
 		EncoderConfig:    zap.NewProductionEncoderConfig(),
 		ErrorOutputPaths: []string{"stderr"},
 		OutputPaths: []string{
-			outputPath,
+			emq.config.WriteOutputPath,
 		},
 	}
 	config.EncoderConfig.EncodeTime = zapcore.RFC3339NanoTimeEncoder
-	return config.Build()
+
+	emq.output, err = config.Build()
+	return err
+}
+
+func (emq *EnqueueStomp) writeOutput(action string, identifier string, destinationType string, destinationName string, body []byte) {
+	emq.output.Info(action,
+		zap.String("identifier", identifier),
+		zap.String("destinationType", destinationType),
+		zap.String("destinationName", destinationName),
+		zap.ByteString("body", body),
+	)
+}
+
+func (emq *EnqueueStomp) debugLogger(template string, args ...interface{}) {
+	emq.log.Debugf(template, args)
+}
+
+func (emq *EnqueueStomp) errorLogger(template string, args ...interface{}) {
+	emq.log.Errorf(template, args)
 }
