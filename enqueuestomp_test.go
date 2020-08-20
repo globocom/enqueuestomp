@@ -31,9 +31,8 @@ var (
 )
 
 func (s *EnqueueStompSuite) TestDefaultConfig(c *check.C) {
-	configEnqueue := enqueuestomp.Config{}
 	enqueue, err := enqueuestomp.NewEnqueueStomp(
-		configEnqueue,
+		enqueuestomp.Config{},
 	)
 	c.Assert(err, check.IsNil)
 
@@ -96,29 +95,65 @@ func (s *EnqueueStompSuite) TestConfigConstantBackOff(c *check.C) {
 	}
 }
 
-func (s *EnqueueStompSuite) TestFailtConnect(c *check.C) {
-	configEnqueue := enqueuestomp.Config{
-		Addr:           "XPTO:61613",
-		RetriesConnect: 1,
-	}
+func (s *EnqueueStompSuite) TestConfigetriesConnect(c *check.C) {
+	enqueue, err := enqueuestomp.NewEnqueueStomp(
+		enqueuestomp.Config{
+			RetriesConnect: 1,
+		},
+	)
+	c.Assert(err, check.IsNil)
+
+	config := enqueue.Config()
+	c.Assert(config.RetriesConnect, check.Equals, 1)
+}
+
+func (s *EnqueueStompSuite) TestConfigMinRetriesConnect(c *check.C) {
+	enqueue, err := enqueuestomp.NewEnqueueStomp(
+		enqueuestomp.Config{
+			RetriesConnect: -1,
+		},
+	)
+	c.Assert(err, check.IsNil)
+
+	config := enqueue.Config()
+	c.Assert(config.RetriesConnect, check.Equals, 3)
+}
+
+func (s *EnqueueStompSuite) TestConfigMinRetriesConnect2(c *check.C) {
+	enqueue, err := enqueuestomp.NewEnqueueStomp(
+		enqueuestomp.Config{
+			RetriesConnect: 0,
+		},
+	)
+	c.Assert(err, check.IsNil)
+
+	config := enqueue.Config()
+	c.Assert(config.RetriesConnect, check.Equals, 3)
+}
+
+func (s *EnqueueStompSuite) TestConfigMaxRetriesConnect(c *check.C) {
+	enqueue, err := enqueuestomp.NewEnqueueStomp(
+		enqueuestomp.Config{
+			RetriesConnect: 10,
+		},
+	)
+	c.Assert(err, check.IsNil)
+
+	config := enqueue.Config()
+	c.Assert(config.RetriesConnect, check.Equals, 5)
+}
+
+func (s *EnqueueStompSuite) TestFailtConnectAddr(c *check.C) {
 	_, err := enqueuestomp.NewEnqueueStomp(
-		configEnqueue,
+		enqueuestomp.Config{
+			Addr:           "notfound:1234",
+			RetriesConnect: 1,
+		},
 	)
 	c.Assert(err, check.NotNil)
 }
 
-func (s *EnqueueStompSuite) TestFailtConnect2(c *check.C) {
-	configEnqueue := enqueuestomp.Config{
-		Addr:           "localhost:123456789",
-		RetriesConnect: 1,
-	}
-	_, err := enqueuestomp.NewEnqueueStomp(
-		configEnqueue,
-	)
-	c.Assert(err, check.NotNil)
-}
-
-func (s *EnqueueStompSuite) TestFailtConnect3(c *check.C) {
+func (s *EnqueueStompSuite) TestFailtConnectNetwork(c *check.C) {
 	_, err := enqueuestomp.NewEnqueueStomp(
 		enqueuestomp.Config{
 			Network:        "xpto",
