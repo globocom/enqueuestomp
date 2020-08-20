@@ -52,7 +52,11 @@ type Config struct {
 }
 
 func (c *Config) AddOptions(opts ...func(*stomp.Conn) error) {
-	c.Options = opts
+	if len(c.Options) == 0 {
+		c.Options = opts
+	} else {
+		c.Options = append(c.Options, opts...)
+	}
 }
 
 func (c *Config) init() {

@@ -110,4 +110,4 @@ func main() {
 [![GoDoc]( https://godoc.org/github.com/globocom/enqueuestomp?status.svg)](https://pkg.go.dev/github.com/globocom/enqueuestomp)
 
 Full documentation for the package can be viewed online using the GoDoc site here:
-https://pkg.go.dev/github.com/globocom/enqueuestomp
+[https://pkg.go.dev/github.com/globocom/enqueuestomp](https://pkg.go.dev/github.com/globocom/enqueuestomp)

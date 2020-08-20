@@ -40,7 +40,11 @@ type SendConfig struct {
 }
 
 func (sc *SendConfig) AddOptions(opts ...func(*frame.Frame) error) {
-	sc.Options = opts
+	if len(sc.Options) == 0 {
+		sc.Options = opts
+	} else {
+		sc.Options = append(sc.Options, opts...)
+	}
 }
 
 func (sc *SendConfig) init() {

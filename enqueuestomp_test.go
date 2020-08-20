@@ -146,6 +146,7 @@ func (s *EnqueueStompSuite) TestConfigMaxRetriesConnect(c *check.C) {
 	config := enqueue.Config()
 	c.Assert(config.RetriesConnect, check.Equals, 5)
 }
+
 func (s *EnqueueStompSuite) TestConfigWithOptions(c *check.C) {
 	enqueueConfig := enqueuestomp.Config{}
 	enqueueConfig.AddOptions(
@@ -388,4 +389,45 @@ func (s *EnqueueStompSuite) TestDisconnect(c *check.C) {
 
 	err = enqueue.Disconnect()
 	c.Assert(err, check.IsNil)
+}
+
+func (s *EnqueueStompSuite) TestSendConfigOptions(c *check.C) {
+	enqueue, err := enqueuestomp.NewEnqueueStomp(
+		enqueuestomp.Config{},
+	)
+	c.Assert(err, check.IsNil)
+
+	sc := enqueuestomp.SendConfig{}
+	sc.AddOptions(stomp.SendOpt.Header("persistent", "true"))
+	sc.AddOptions(stomp.SendOpt.Header("X-header", "myheader"))
+	c.Assert(sc.Options, check.HasLen, 2)
+
+	err = enqueue.SendQueue(queueName, queueBody, sc)
+	c.Assert(err, check.IsNil)
+	s.waitQueueSize(enqueue)
+
+	enqueueCount := s.j.StatQueue(queueName, "EnqueueCount")
+	c.Assert(enqueueCount, check.Equals, "1")
+}
+
+func (s *EnqueueStompSuite) TestConfigOptions(c *check.C) {
+	enqueueConfig := enqueuestomp.Config{}
+	enqueueConfig.AddOptions(
+		stomp.ConnOpt.HeartBeat(0*time.Second, 0*time.Second),
+	)
+	enqueueConfig.AddOptions(
+		stomp.ConnOpt.Login("guest", "guest"),
+	)
+	c.Assert(enqueueConfig.Options, check.HasLen, 2)
+
+	enqueue, err := enqueuestomp.NewEnqueueStomp(enqueueConfig)
+	c.Assert(err, check.IsNil)
+
+	sc := enqueuestomp.SendConfig{}
+	err = enqueue.SendQueue(queueName, queueBody, sc)
+	c.Assert(err, check.IsNil)
+	s.waitQueueSize(enqueue)
+
+	enqueueCount := s.j.StatQueue(queueName, "EnqueueCount")
+	c.Assert(enqueueCount, check.Equals, "1")
 }
