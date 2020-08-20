@@ -150,7 +150,7 @@ func (s *EnqueueStompSuite) TestSendQueueWritePersistent(c *check.C) {
 	c.Assert(err, check.IsNil)
 
 	so := enqueuestomp.SendOptions{}
-	so.AddOpts(stomp.SendOpt.Header("persistent", "true"))
+	so.AddOptions(stomp.SendOpt.Header("persistent", "true"))
 
 	err = enqueue.SendQueue(queueName, queueBody, so)
 	c.Assert(err, check.IsNil)

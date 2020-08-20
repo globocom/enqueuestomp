@@ -54,7 +54,7 @@ type Config struct {
 	Logger Logger
 }
 
-func (c *Config) AddOpts(opts ...func(*stomp.Conn) error) {
+func (c *Config) AddOptions(opts ...func(*stomp.Conn) error) {
 	c.Options = opts
 }
 

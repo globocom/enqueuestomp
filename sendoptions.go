@@ -39,7 +39,7 @@ type SendOptions struct {
 	CircuitName string
 }
 
-func (so *SendOptions) AddOpts(opts ...func(*frame.Frame) error) {
+func (so *SendOptions) AddOptions(opts ...func(*frame.Frame) error) {
 	so.Options = opts
 }
 
