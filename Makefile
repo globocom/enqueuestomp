@@ -15,6 +15,13 @@ test:
 	fi; \
 	go test -v -count=1 -cover -race ./...
 
+test-coverage:
+	@if [ ! $(shell docker container ls -f name=$(CONTAINER_NAME) -q) ]; then \
+		$(MAKE) start-activemq; \
+	fi; \
+	go test -v -count=1 -race -cover -covermode atomic -coverprofile coverage.out ./...
+	go tool cover -html=coverage.out
+
 ci:
 	@sleep 10
 	go test -count=1 -cover -race ./...
