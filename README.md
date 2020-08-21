@@ -105,6 +105,32 @@ func main() {
     }
 ```
 
+### CircuitBreaker config
+
+```go
+    type CircuitBreakerConfig struct {
+        // how long to wait for command to complete, in milliseconds
+        // Default is 10000
+        Timeout int
+
+        // how many commands of the same type can run at the same time
+        // Default is 10000
+        MaxConcurrentRequests int
+
+        // the minimum number of requests needed before a circuit can be tripped due to health
+        // Default is 100
+        RequestVolumeThreshold int
+
+        //  how long, in milliseconds, to wait after a circuit opens before testing for recovery
+        // Default is 500
+        SleepWindow int
+
+        // causes circuits to open once the rolling measure of errors exceeds this percent of requests
+        // Default is 5
+        ErrorPercentThreshold int
+    }
+```
+
 ### Documentation
 
 [![GoDoc]( https://godoc.org/github.com/globocom/enqueuestomp?status.svg)](https://pkg.go.dev/github.com/globocom/enqueuestomp)
