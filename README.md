@@ -48,87 +48,87 @@ func main() {
 ### Enqueue config
 
 ```go
-    type Config struct {
-        // Default is tcp
-        Network string
+type Config struct {
+    // Default is tcp
+    Network string
 
-        // host:port address
-        // Default is localhost:61613
-        Addr string
+    // host:port address
+    // Default is localhost:61613
+    Addr string
 
-        // https://pkg.go.dev/github.com/go-stomp/stomp
-        Options []func(*stomp.Conn) error
+    // https://pkg.go.dev/github.com/go-stomp/stomp
+    Options []func(*stomp.Conn) error
 
-        // The maxWorkers parameter specifies the maximum number of workers that can
-        // execute tasks concurrently.  When there are no incoming tasks, workers are
-        // gradually stopped until there are no remaining workers.
-        // Default is runtime.NumCPU()
-        MaxWorkers int
+    // The maxWorkers parameter specifies the maximum number of workers that can
+    // execute tasks concurrently.  When there are no incoming tasks, workers are
+    // gradually stopped until there are no remaining workers.
+    // Default is runtime.NumCPU()
+    MaxWorkers int
 
-        // Default is 3, Max is 5
-        RetriesConnect int
+    // Default is 3, Max is 5
+    RetriesConnect int
 
-        // Used to determine how long a retry request should wait until attempted.
-        // Default is ExponentialBackoff
-        BackoffConnect BackoffStrategy
+    // Used to determine how long a retry request should wait until attempted.
+    // Default is ExponentialBackoff
+    BackoffConnect BackoffStrategy
 
-        // File path to write logging output to
-        WriteOutputPath string
+    // File path to write logging output to
+    WriteOutputPath string
 
-        // Logger that will be used
-        // Default is nothing
-        Logger Logger
-    }
+    // Logger that will be used
+    // Default is nothing
+    Logger Logger
+}
 ```
 
 ### Send config
 
 ```go
-    type SendConfig struct {
-        // The content type should be specified, according to the STOMP specification, but if contentType is an empty
-        // string, the message will be delivered without a content-type header entry.
-        // Default is text/plain.
-        ContentType string
+type SendConfig struct {
+    // The content type should be specified, according to the STOMP specification, but if contentType is an empty
+    // string, the message will be delivered without a content-type header entry.
+    // Default is text/plain.
+    ContentType string
 
-        // Any number of options can be specified in opts. See the examples for usage. Options include whether
-        // to receive a RECEIPT, should the content-length be suppressed, and sending custom header entries.
-        // https://pkg.go.dev/github.com/go-stomp/stomp/frame
-        Options []func(*frame.Frame) error
+    // Any number of options can be specified in opts. See the examples for usage. Options include whether
+    // to receive a RECEIPT, should the content-length be suppressed, and sending custom header entries.
+    // https://pkg.go.dev/github.com/go-stomp/stomp/frame
+    Options []func(*frame.Frame) error
 
-        BeforeSend func(identifier string, destinationType string, destinationName string, body []byte, startTime time.Time)
+    BeforeSend func(identifier string, destinationType string, destinationName string, body []byte, startTime time.Time)
 
-        AfterSend func(identifier string, destinationType string, destinationName string, body []byte, startTime time.Time, err error)
+    AfterSend func(identifier string, destinationType string, destinationName string, body []byte, startTime time.Time, err error)
 
-        // the name of the CircuitBreaker.
-        // Default is empty
-        CircuitName string
-    }
+    // the name of the CircuitBreaker.
+    // Default is empty
+    CircuitName string
+}
 ```
 
 ### CircuitBreaker config
 
 ```go
-    type CircuitBreakerConfig struct {
-        // how long to wait for command to complete, in milliseconds
-        // Default is 10000
-        Timeout int
+type CircuitBreakerConfig struct {
+    // how long to wait for command to complete, in milliseconds
+    // Default is 10000
+    Timeout int
 
-        // how many commands of the same type can run at the same time
-        // Default is 10000
-        MaxConcurrentRequests int
+    // how many commands of the same type can run at the same time
+    // Default is 10000
+    MaxConcurrentRequests int
 
-        // the minimum number of requests needed before a circuit can be tripped due to health
-        // Default is 100
-        RequestVolumeThreshold int
+    // the minimum number of requests needed before a circuit can be tripped due to health
+    // Default is 100
+    RequestVolumeThreshold int
 
-        //  how long, in milliseconds, to wait after a circuit opens before testing for recovery
-        // Default is 500
-        SleepWindow int
+    //  how long, in milliseconds, to wait after a circuit opens before testing for recovery
+    // Default is 500
+    SleepWindow int
 
-        // causes circuits to open once the rolling measure of errors exceeds this percent of requests
-        // Default is 5
-        ErrorPercentThreshold int
-    }
+    // causes circuits to open once the rolling measure of errors exceeds this percent of requests
+    // Default is 5
+    ErrorPercentThreshold int
+}
 ```
 
 ### Documentation
