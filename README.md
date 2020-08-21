@@ -20,7 +20,7 @@ func main() {
     enqueueConfig := enqueuestomp.Config{
         Addr:  "localhost:61613",
     }
-    enqueueConfig.AddOptions(
+    enqueueConfig.SetOptions(
         stomp.ConnOpt.HeartBeat(0*time.Second, 0*time.Second),
     )
 
@@ -32,7 +32,7 @@ func main() {
     }
 
     sc := enqueuestomp.SendConfig{}
-    sc.AddOptions(
+    sc.SetOptions(
         stomp.SendOpt.Header("persistent", "true"),
     )
 

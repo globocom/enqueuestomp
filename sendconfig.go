@@ -39,12 +39,15 @@ type SendConfig struct {
 	CircuitName string
 }
 
-func (sc *SendConfig) AddOptions(opts ...func(*frame.Frame) error) {
+func (sc *SendConfig) SetOptions(opts ...func(*frame.Frame) error) {
+	sc.Options = opts
+}
+
+func (sc *SendConfig) AddOption(opt func(*frame.Frame) error) {
 	if len(sc.Options) == 0 {
-		sc.Options = opts
-	} else {
-		sc.Options = append(sc.Options, opts...)
+		sc.Options = make([]func(*frame.Frame) error, 0)
 	}
+	sc.Options = append(sc.Options, opt)
 }
 
 func (sc *SendConfig) init() {

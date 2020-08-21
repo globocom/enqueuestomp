@@ -167,8 +167,10 @@ func (emq *EnqueueStomp) newConn(identifier string) (err error) {
 				"[enqueuestomp][%s] Connected :: %s",
 				identifier, emq.config.Addr,
 			)
-			emq.conn = conn
-			atomic.StoreInt32(&emq.connected, 1)
+			if atomic.LoadInt32(&emq.connected) == 0 {
+				emq.conn = conn
+				atomic.StoreInt32(&emq.connected, 1)
+			}
 			return nil
 		}
 

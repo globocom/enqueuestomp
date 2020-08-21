@@ -11,6 +11,7 @@ package enqueuestomp_test
 import (
 	"runtime"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/globocom/enqueuestomp"
@@ -150,7 +151,7 @@ func (s *EnqueueStompSuite) TestConfigMaxRetriesConnect(c *check.C) {
 
 func (s *EnqueueStompSuite) TestConfigWithOptions(c *check.C) {
 	enqueueConfig := enqueuestomp.Config{}
-	enqueueConfig.AddOptions(
+	enqueueConfig.SetOptions(
 		stomp.ConnOpt.HeartBeat(0*time.Second, 0*time.Second),
 	)
 	enqueue, err := enqueuestomp.NewEnqueueStomp(enqueueConfig)
@@ -286,7 +287,7 @@ func (s *EnqueueStompSuite) TestSendQueueWritePersistent(c *check.C) {
 	c.Assert(err, check.IsNil)
 
 	sc := enqueuestomp.SendConfig{}
-	sc.AddOptions(stomp.SendOpt.Header("persistent", "true"))
+	sc.SetOptions(stomp.SendOpt.Header("persistent", "true"))
 
 	err = enqueue.SendQueue(queueName, queueBody, sc)
 	c.Assert(err, check.IsNil)
@@ -399,9 +400,12 @@ func (s *EnqueueStompSuite) TestSendConfigOptions(c *check.C) {
 	c.Assert(err, check.IsNil)
 
 	sc := enqueuestomp.SendConfig{}
-	sc.AddOptions(stomp.SendOpt.Header("persistent", "true"))
-	sc.AddOptions(stomp.SendOpt.Header("X-header", "myheader"))
+	sc.AddOption(stomp.SendOpt.Header("X-header", "myheader"))
+	sc.AddOption(stomp.SendOpt.Header("X-header", "myheader"))
 	c.Assert(sc.Options, check.HasLen, 2)
+
+	sc.SetOptions(stomp.SendOpt.Header("persistent", "true"))
+	c.Assert(sc.Options, check.HasLen, 1)
 
 	err = enqueue.SendQueue(queueName, queueBody, sc)
 	c.Assert(err, check.IsNil)
@@ -413,13 +417,14 @@ func (s *EnqueueStompSuite) TestSendConfigOptions(c *check.C) {
 
 func (s *EnqueueStompSuite) TestConfigOptions(c *check.C) {
 	enqueueConfig := enqueuestomp.Config{}
-	enqueueConfig.AddOptions(
+	enqueueConfig.AddOption(stomp.ConnOpt.Login("guest", "guest"))
+	enqueueConfig.AddOption(stomp.ConnOpt.Login("guest", "guest"))
+	c.Assert(enqueueConfig.Options, check.HasLen, 2)
+
+	enqueueConfig.SetOptions(
 		stomp.ConnOpt.HeartBeat(0*time.Second, 0*time.Second),
 	)
-	enqueueConfig.AddOptions(
-		stomp.ConnOpt.Login("guest", "guest"),
-	)
-	c.Assert(enqueueConfig.Options, check.HasLen, 2)
+	c.Assert(enqueueConfig.Options, check.HasLen, 1)
 
 	enqueue, err := enqueuestomp.NewEnqueueStomp(enqueueConfig)
 	c.Assert(err, check.IsNil)
@@ -448,4 +453,34 @@ func (s *EnqueueStompSuite) TestSendConfigLogger(c *check.C) {
 
 	enqueueCount := s.j.StatQueue(queueName, "EnqueueCount")
 	c.Assert(enqueueCount, check.Equals, "1")
+}
+
+func (s *EnqueueStompSuite) TestSend(c *check.C) {
+	enqueue, err := enqueuestomp.NewEnqueueStomp(
+		enqueuestomp.Config{},
+	)
+	c.Assert(err, check.IsNil)
+
+	err = enqueue.Disconnect()
+	c.Assert(err, check.IsNil)
+
+	var wg sync.WaitGroup
+	total := 1500
+	for i := 0; i < total; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			sc := enqueuestomp.SendConfig{}
+			err := enqueue.SendTopic(topicName, topicBody, sc)
+			c.Assert(err, check.IsNil)
+		}()
+	}
+	wg.Wait()
+	s.waitQueueSize(enqueue)
+
+	lines := s.countFileLines(enqueue.Config().WriteOutputPath)
+	c.Assert(lines, check.Equals, total*2)
+
+	enqueueCount := s.j.StatTopic(topicName, "EnqueueCount")
+	c.Assert(enqueueCount, check.Equals, strconv.Itoa(total))
 }

@@ -51,12 +51,15 @@ type Config struct {
 	Logger Logger
 }
 
-func (c *Config) AddOptions(opts ...func(*stomp.Conn) error) {
+func (c *Config) SetOptions(opts ...func(*stomp.Conn) error) {
+	c.Options = opts
+}
+
+func (c *Config) AddOption(opt func(*stomp.Conn) error) {
 	if len(c.Options) == 0 {
-		c.Options = opts
-	} else {
-		c.Options = append(c.Options, opts...)
+		c.Options = make([]func(*stomp.Conn) error, 0)
 	}
+	c.Options = append(c.Options, opt)
 }
 
 func (c *Config) init() {
