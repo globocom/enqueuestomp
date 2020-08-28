@@ -18,7 +18,6 @@ import (
 
 	"github.com/gammazero/workerpool"
 	"github.com/go-stomp/stomp"
-	"github.com/google/uuid"
 	"go.uber.org/zap"
 )
 
@@ -192,5 +191,6 @@ func (emq *EnqueueStomp) newConn(identifier string) (err error) {
 }
 
 func makeIdentifier() string {
-	return uuid.New().String()
+	return "123456"
+	// return uuid.New().String()
 }
