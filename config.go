@@ -16,8 +16,8 @@ import (
 )
 
 const (
-	defaultRetriesConnect    = 3
-	defaultMaxRetriesConnect = 5
+	DefaultRetriesConnect    = 3
+	DefaultMaxRetriesConnect = 5
 )
 
 type Config struct {
@@ -81,9 +81,9 @@ func (c *Config) init() {
 	}
 
 	if c.RetriesConnect < 1 {
-		c.RetriesConnect = defaultRetriesConnect
-	} else if c.RetriesConnect > defaultMaxRetriesConnect {
-		c.RetriesConnect = defaultMaxRetriesConnect
+		c.RetriesConnect = DefaultRetriesConnect
+	} else if c.RetriesConnect > DefaultMaxRetriesConnect {
+		c.RetriesConnect = DefaultMaxRetriesConnect
 	}
 
 	if c.BackoffConnect == nil {
