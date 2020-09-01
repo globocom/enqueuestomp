@@ -78,6 +78,10 @@ type Config struct {
     // Logger that will be used
     // Default is nothing
     Logger Logger
+
+    // create unique identifier
+    // Default google/uuid
+    IdentifierFunc func() string
 }
 ```
 

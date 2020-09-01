@@ -12,6 +12,7 @@ import (
 	"runtime"
 
 	"github.com/go-stomp/stomp"
+	"github.com/google/uuid"
 )
 
 const (
@@ -49,6 +50,10 @@ type Config struct {
 	// Logger that will be used
 	// Default is nothing
 	Logger Logger
+
+	// create unique identifier
+	// Default google/uuid
+	IdentifierFunc func() string
 }
 
 func (c *Config) SetOptions(opts ...func(*stomp.Conn) error) {
@@ -87,5 +92,11 @@ func (c *Config) init() {
 
 	if c.Logger == nil {
 		c.Logger = NoopLogger{}
+	}
+
+	if c.IdentifierFunc == nil {
+		c.IdentifierFunc = func() string {
+			return uuid.New().String()
+		}
 	}
 }

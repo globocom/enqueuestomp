@@ -164,6 +164,7 @@ func (j *jolokia) doRequest(url string) []byte {
 	return body
 }
 
+// nolint
 // increase resources limitation.
 func changeMaxULimit(ulimit int) error {
 	var uLimit syscall.Rlimit

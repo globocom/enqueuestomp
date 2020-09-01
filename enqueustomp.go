@@ -44,7 +44,7 @@ func NewEnqueueStomp(config Config) (*EnqueueStomp, error) {
 	config.init()
 
 	emq := &EnqueueStomp{
-		id:           makeIdentifier(),
+		id:           config.IdentifierFunc(),
 		config:       config,
 		wp:           workerpool.New(config.MaxWorkers),
 		circuitNames: make(map[string]string),
@@ -103,7 +103,7 @@ func (emq *EnqueueStomp) send(destinationType string, destinationName string, bo
 	}
 	sc.init()
 
-	identifier := makeIdentifier()
+	identifier := emq.config.IdentifierFunc()
 	emq.writeOutput("before", identifier, destinationType, destinationName, body)
 
 	emq.wp.Submit(func() {
@@ -188,9 +188,4 @@ func (emq *EnqueueStomp) newConn(identifier string) (err error) {
 	)
 
 	return err
-}
-
-func makeIdentifier() string {
-	return "123456"
-	// return uuid.New().String()
 }

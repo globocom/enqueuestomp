@@ -16,6 +16,7 @@ import (
 
 	"github.com/globocom/enqueuestomp"
 	"github.com/go-stomp/stomp"
+	"github.com/google/uuid"
 	"go.uber.org/zap"
 	check "gopkg.in/check.v1"
 )
@@ -39,6 +40,10 @@ func (s *EnqueueStompSuite) TestDefaultConfig(c *check.C) {
 	c.Assert(err, check.IsNil)
 
 	config := enqueue.Config()
+	identifier := config.IdentifierFunc()
+	c.Assert(identifier, check.Not(check.Equals), "")
+	_, err = uuid.Parse(identifier)
+	c.Assert(err, check.IsNil)
 	c.Assert(config.Addr, check.Equals, "localhost:61613")
 	c.Assert(config.Network, check.Equals, "tcp")
 	c.Assert(config.MaxWorkers, check.Equals, runtime.NumCPU())
@@ -147,6 +152,21 @@ func (s *EnqueueStompSuite) TestConfigMaxRetriesConnect(c *check.C) {
 
 	config := enqueue.Config()
 	c.Assert(config.RetriesConnect, check.Equals, 5)
+}
+
+func (s *EnqueueStompSuite) TestConfigIdentifierFunc(c *check.C) {
+	enqueue, err := enqueuestomp.NewEnqueueStomp(
+		enqueuestomp.Config{
+			IdentifierFunc: func() string {
+				return "test-identifier"
+			},
+		},
+	)
+	c.Assert(err, check.IsNil)
+
+	config := enqueue.Config()
+	identifier := config.IdentifierFunc()
+	c.Assert(identifier, check.Equals, "test-identifier")
 }
 
 func (s *EnqueueStompSuite) TestConfigWithOptions(c *check.C) {
