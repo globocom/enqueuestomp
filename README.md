@@ -3,6 +3,7 @@
 [![CircleCI](https://circleci.com/gh/globocom/enqueuestomp.svg?style=shield)](https://circleci.com/gh/globocom/enqueuestomp)
 [![Release](https://img.shields.io/github/release/globocom/enqueuestomp.svg)](https://github.com/globocom/enqueuestomp/releases)
 [![GoDoc]( https://godoc.org/github.com/globocom/enqueuestomp?status.svg)](https://pkg.go.dev/github.com/globocom/enqueuestomp)
+[![Go Report Card](https://goreportcard.com/badge/github.com/globocom/enqueuestomp)](https://goreportcard.com/report/github.com/globocom/enqueuestomp)
 
 ## Use
 
