@@ -504,3 +504,23 @@ func (s *EnqueueStompSuite) TestSend(c *check.C) {
 	enqueueCount := s.j.StatTopic(topicName, "EnqueueCount")
 	c.Assert(enqueueCount, check.Equals, strconv.Itoa(total))
 }
+
+func (s *EnqueueStompSuite) TestCheckQueue(c *check.C) {
+	enqueue, err := enqueuestomp.NewEnqueueStomp(
+		enqueuestomp.Config{},
+	)
+	c.Assert(err, check.IsNil)
+
+	err = enqueue.CheckQueue("checkQueue")
+	c.Assert(err, check.IsNil)
+}
+
+func (s *EnqueueStompSuite) TestCheckTopic(c *check.C) {
+	enqueue, err := enqueuestomp.NewEnqueueStomp(
+		enqueuestomp.Config{},
+	)
+	c.Assert(err, check.IsNil)
+
+	err = enqueue.CheckTopic("checkTopic")
+	c.Assert(err, check.IsNil)
+}

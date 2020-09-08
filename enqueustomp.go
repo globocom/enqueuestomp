@@ -25,6 +25,9 @@ var (
 	ErrEmptyBody      = errors.New("empty body")
 	ErrEmptyQueueName = errors.New("empty queue name")
 	ErrEmptyTopicName = errors.New("empty topic name")
+
+	DefaultExpiresCheck = 1 * time.Minute
+	DefaultBodyCheck    = []byte("PING")
 )
 
 type EnqueueStomp struct {
@@ -91,6 +94,14 @@ func (emq *EnqueueStomp) QueueSize() int {
 
 func (emq *EnqueueStomp) Config() Config {
 	return emq.config
+}
+
+func (emq *EnqueueStomp) CheckQueue(queueName string) error {
+	return emq.check(DestinationTypeQueue, queueName)
+}
+
+func (emq *EnqueueStomp) CheckTopic(topicName string) error {
+	return emq.check(DestinationTypeTopic, topicName)
 }
 
 func (emq *EnqueueStomp) Disconnect() error {
@@ -188,4 +199,17 @@ func (emq *EnqueueStomp) newConn(identifier string) (err error) {
 	)
 
 	return err
+}
+
+func (emq *EnqueueStomp) check(destinationType string, destinationName string) error {
+	destination := fmt.Sprintf("/%s/%s", destinationType, destinationName)
+	unixTimeInMilliSeconds := time.Now().Add(DefaultExpiresCheck).UnixNano() / int64(time.Millisecond)
+	contentType := "text/plain"
+
+	return emq.conn.Send(destination,
+		contentType,
+		DefaultBodyCheck,
+		stomp.SendOpt.Header("persistent", "false"),
+		stomp.SendOpt.Header("expires", fmt.Sprintf("%d", unixTimeInMilliSeconds)),
+	)
 }
