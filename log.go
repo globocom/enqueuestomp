@@ -27,7 +27,7 @@ func (l NoopLogger) Debugf(template string, args ...interface{}) {}
 // Errorf does nothing.
 func (l NoopLogger) Errorf(template string, args ...interface{}) {}
 
-func (emq *EnqueueStomp) newOutput() (err error) {
+func (emq *EnqueueStompImpl) newOutput() (err error) {
 	if emq.config.WriteOutputPath == "" {
 		return nil
 	}
@@ -52,7 +52,7 @@ func (emq *EnqueueStomp) newOutput() (err error) {
 	return err
 }
 
-func (emq *EnqueueStomp) writeOutput(action string, identifier string, destinationType string, destinationName string, body []byte, logField LogField) {
+func (emq *EnqueueStompImpl) writeOutput(action string, identifier string, destinationType string, destinationName string, body []byte, logField LogField) {
 	if emq.hasOutput {
 		fields := []zap.Field{
 			zap.String("identifier", identifier),
@@ -69,10 +69,10 @@ func (emq *EnqueueStomp) writeOutput(action string, identifier string, destinati
 	}
 }
 
-func (emq *EnqueueStomp) debugLogger(template string, args ...interface{}) {
+func (emq *EnqueueStompImpl) debugLogger(template string, args ...interface{}) {
 	emq.log.Debugf(template, args...)
 }
 
-func (emq *EnqueueStomp) errorLogger(template string, args ...interface{}) {
+func (emq *EnqueueStompImpl) errorLogger(template string, args ...interface{}) {
 	emq.log.Errorf(template, args...)
 }
