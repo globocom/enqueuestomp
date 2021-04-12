@@ -52,7 +52,7 @@ func (emq *EnqueueStompImpl) newOutput() (err error) {
 	return err
 }
 
-func (emq *EnqueueStompImpl) writeOutput(action string, identifier string, destinationType string, destinationName string, body []byte) {
+func (emq *EnqueueStompImpl) writeOutput(action string, identifier string, destinationType string, destinationName string, body []byte, logField LogField) {
 	if emq.hasOutput {
 		fields := []zap.Field{
 			zap.String("identifier", identifier),
@@ -61,8 +61,8 @@ func (emq *EnqueueStompImpl) writeOutput(action string, identifier string, desti
 			zap.ByteString("body", body),
 		}
 
-		if emq.logField != nil && len(emq.logField.getFields()) > 0 {
-			fields = append(fields, emq.logField.getFields()...)
+		if logField != nil && len(logField.getFields()) > 0 {
+			fields = append(fields, logField.getFields()...)
 		}
 
 		emq.output.Info(action, fields...)

@@ -37,11 +37,11 @@ func main() {
         stomp.SendOpt.Header("persistent", "true"),
     )
 
+    // If you want to add new fields in logs
+    sc.AddLogField("testKey", "testValue")
+
     name := "queueName"
     body := []byte("queueBody")
-    
-    // If you want to add new fields in logs
-    enqueuestomp.AddLogField("testKey", "testValue")
 
     err := enqueue.SendQueue(name, body, sc)
     if err != nil {

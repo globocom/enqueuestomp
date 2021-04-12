@@ -39,7 +39,6 @@ type EnqueueStomp interface {
 	CheckTopic(topicName string) error
 	Disconnect() error
 	ConfigureCircuitBreaker(name string, cb CircuitBreakerConfig)
-	AddLogField(key, value string)
 }
 
 type EnqueueStompImpl struct {
@@ -53,7 +52,6 @@ type EnqueueStompImpl struct {
 	hasOutput    bool
 	output       *zap.Logger
 	log          Logger
-	logField     LogField
 }
 
 func NewEnqueueStomp(config Config) (EnqueueStomp, error) {
@@ -65,7 +63,6 @@ func NewEnqueueStomp(config Config) (EnqueueStomp, error) {
 		wp:           workerpool.New(config.MaxWorkers),
 		circuitNames: make(map[string]string),
 		log:          config.Logger,
-		logField:     newLogField(),
 	}
 
 	// create connect
@@ -122,10 +119,6 @@ func (emq *EnqueueStompImpl) Disconnect() error {
 	return emq.conn.Disconnect()
 }
 
-func (emq *EnqueueStompImpl) AddLogField(key, value string) {
-	emq.logField.setNewField(key, value)
-}
-
 func (emq *EnqueueStompImpl) send(destinationType string, destinationName string, body []byte, sc SendConfig) error {
 	if len(body) == 0 {
 		return ErrEmptyBody
@@ -133,7 +126,7 @@ func (emq *EnqueueStompImpl) send(destinationType string, destinationName string
 	sc.init()
 
 	identifier := emq.config.IdentifierFunc()
-	emq.writeOutput("before", identifier, destinationType, destinationName, body)
+	emq.writeOutput("before", identifier, destinationType, destinationName, body, sc.logField)
 
 	emq.wp.Submit(func() {
 		var err error
@@ -170,7 +163,7 @@ func (emq *EnqueueStompImpl) send(destinationType string, destinationName string
 			}
 		}
 
-		emq.writeOutput("after", identifier, destinationType, destinationName, body)
+		emq.writeOutput("after", identifier, destinationType, destinationName, body, sc.logField)
 		if sc.AfterSend != nil {
 			sc.AfterSend(identifier, destinationType, destinationName, body, startTime, err)
 		}
