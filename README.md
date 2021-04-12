@@ -41,10 +41,9 @@ func main() {
     body := []byte("queueBody")
     
     // If you want to add new fields in logs
-    logField := enqueuestomp.NewLogField()
-    logField.SetNewField("testKey", "testValue")
+    enqueuestomp.AddLogField("testKey", "testValue")
 
-    err := enqueue.SendQueue(name, body, sc, logField)
+    err := enqueue.SendQueue(name, body, sc)
     if err != nil {
         fmt.Printf("error %s", err)
     }

@@ -3,7 +3,7 @@ package enqueuestomp
 import "go.uber.org/zap"
 
 type LogField interface {
-	SetNewField(key, value string)
+	setNewField(key, value string)
 	getFields() []zap.Field
 }
 
@@ -11,13 +11,13 @@ type LogFieldImpl struct {
 	fields map[string]string
 }
 
-func NewLogField() LogField {
+func newLogField() LogField {
 	return &LogFieldImpl{
 		fields: map[string]string{},
 	}
 }
 
-func (log *LogFieldImpl) SetNewField(key, value string) {
+func (log *LogFieldImpl) setNewField(key, value string) {
 	if len(key) > 0 {
 		log.fields[key] = value
 	}

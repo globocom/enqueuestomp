@@ -87,9 +87,9 @@ func TestLogField(t *testing.T) {
 		},
 	}
 	for index, testCase := range testCases {
-		logField := NewLogField()
+		logField := newLogField()
 		for _, input := range testCase.inputs {
-			logField.SetNewField(input.key, input.value)
+			logField.setNewField(input.key, input.value)
 		}
 		expectedResponse := logField.getFields()
 		assert.Subset(t, testCase.output.fields, expectedResponse, fmt.Sprintf("Test #%d [%s] failed. Wrong response.", index, testCase.name))

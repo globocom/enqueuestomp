@@ -31,14 +31,15 @@ var (
 )
 
 type EnqueueStomp interface {
-	SendQueue(queueName string, body []byte, sc SendConfig, logField LogField) error
-	SendTopic(topicName string, body []byte, sc SendConfig, logField LogField) error
+	SendQueue(queueName string, body []byte, sc SendConfig) error
+	SendTopic(topicName string, body []byte, sc SendConfig) error
 	QueueSize() int
 	Config() Config
 	CheckQueue(queueName string) error
 	CheckTopic(topicName string) error
 	Disconnect() error
 	ConfigureCircuitBreaker(name string, cb CircuitBreakerConfig)
+	AddLogField(key, value string)
 }
 
 type EnqueueStompImpl struct {
@@ -52,6 +53,7 @@ type EnqueueStompImpl struct {
 	hasOutput    bool
 	output       *zap.Logger
 	log          Logger
+	logField     LogField
 }
 
 func NewEnqueueStomp(config Config) (EnqueueStomp, error) {
@@ -63,6 +65,7 @@ func NewEnqueueStomp(config Config) (EnqueueStomp, error) {
 		wp:           workerpool.New(config.MaxWorkers),
 		circuitNames: make(map[string]string),
 		log:          config.Logger,
+		logField:     newLogField(),
 	}
 
 	// create connect
@@ -81,22 +84,22 @@ func NewEnqueueStomp(config Config) (EnqueueStomp, error) {
 // SendQueue
 // The body array contains the message body,
 // and its content should be consistent with the specified content type.
-func (emq *EnqueueStompImpl) SendQueue(queueName string, body []byte, sc SendConfig, logField LogField) error {
+func (emq *EnqueueStompImpl) SendQueue(queueName string, body []byte, sc SendConfig) error {
 	if queueName == "" || strings.TrimSpace(queueName) == "" {
 		return ErrEmptyQueueName
 	}
-	return emq.send(DestinationTypeQueue, queueName, body, sc, logField)
+	return emq.send(DestinationTypeQueue, queueName, body, sc)
 }
 
 // SendTopic
 // The body array contains the message body,
 // and its content should be consistent with the specified content type.
-func (emq *EnqueueStompImpl) SendTopic(topicName string, body []byte, sc SendConfig, logField LogField) error {
+func (emq *EnqueueStompImpl) SendTopic(topicName string, body []byte, sc SendConfig) error {
 	if topicName == "" || strings.TrimSpace(topicName) == "" {
 		return ErrEmptyTopicName
 	}
 
-	return emq.send(DestinationTypeTopic, topicName, body, sc, logField)
+	return emq.send(DestinationTypeTopic, topicName, body, sc)
 }
 
 func (emq *EnqueueStompImpl) QueueSize() int {
@@ -119,14 +122,18 @@ func (emq *EnqueueStompImpl) Disconnect() error {
 	return emq.conn.Disconnect()
 }
 
-func (emq *EnqueueStompImpl) send(destinationType string, destinationName string, body []byte, sc SendConfig, logField LogField) error {
+func (emq *EnqueueStompImpl) AddLogField(key, value string) {
+	emq.logField.setNewField(key, value)
+}
+
+func (emq *EnqueueStompImpl) send(destinationType string, destinationName string, body []byte, sc SendConfig) error {
 	if len(body) == 0 {
 		return ErrEmptyBody
 	}
 	sc.init()
 
 	identifier := emq.config.IdentifierFunc()
-	emq.writeOutput("before", identifier, destinationType, destinationName, body, logField)
+	emq.writeOutput("before", identifier, destinationType, destinationName, body)
 
 	emq.wp.Submit(func() {
 		var err error
@@ -163,7 +170,7 @@ func (emq *EnqueueStompImpl) send(destinationType string, destinationName string
 			}
 		}
 
-		emq.writeOutput("after", identifier, destinationType, destinationName, body, logField)
+		emq.writeOutput("after", identifier, destinationType, destinationName, body)
 		if sc.AfterSend != nil {
 			sc.AfterSend(identifier, destinationType, destinationName, body, startTime, err)
 		}
