@@ -216,8 +216,11 @@ func (s *EnqueueStompSuite) TestSendQueue(c *check.C) {
 	)
 	c.Assert(err, check.IsNil)
 
+	logField := enqueuestomp.NewLogField()
+	logField.SetNewField("testKey", "testValue")
+
 	sc := enqueuestomp.SendConfig{}
-	err = enqueue.SendQueue(queueName, queueBody, sc, nil)
+	err = enqueue.SendQueue(queueName, queueBody, sc, logField)
 	c.Assert(err, check.IsNil)
 	s.waitQueueSize(enqueue)
 
@@ -248,7 +251,11 @@ func (s *EnqueueStompSuite) TestSendQueueWithBeforeAfterSend(c *check.C) {
 			c.Assert(err, check.IsNil)
 		},
 	}
-	err = enqueue.SendQueue(queueName, queueBody, sc, nil)
+
+	logField := enqueuestomp.NewLogField()
+	logField.SetNewField("testKey", "testValue")
+
+	err = enqueue.SendQueue(queueName, queueBody, sc, logField)
 	c.Assert(err, check.IsNil)
 	s.waitQueueSize(enqueue)
 
@@ -262,8 +269,11 @@ func (s *EnqueueStompSuite) TestSendQueueBodyEmpty(c *check.C) {
 	)
 	c.Assert(err, check.IsNil)
 
+	logField := enqueuestomp.NewLogField()
+	logField.SetNewField("testKey", "testValue")
+
 	sc := enqueuestomp.SendConfig{}
-	err = enqueue.SendQueue(queueName, nil, sc, nil)
+	err = enqueue.SendQueue(queueName, nil, sc, logField)
 	c.Assert(err, check.Equals, enqueuestomp.ErrEmptyBody)
 }
 
@@ -273,8 +283,11 @@ func (s *EnqueueStompSuite) TestSendTopicBodyEmpty(c *check.C) {
 	)
 	c.Assert(err, check.IsNil)
 
+	logField := enqueuestomp.NewLogField()
+	logField.SetNewField("testKey", "testValue")
+
 	sc := enqueuestomp.SendConfig{}
-	err = enqueue.SendTopic(topicName, nil, sc, nil)
+	err = enqueue.SendTopic(topicName, nil, sc, logField)
 	c.Assert(err, check.Equals, enqueuestomp.ErrEmptyBody)
 }
 
@@ -285,7 +298,11 @@ func (s *EnqueueStompSuite) TestSendQueueNameEmpty(c *check.C) {
 	c.Assert(err, check.IsNil)
 
 	sc := enqueuestomp.SendConfig{}
-	err = enqueue.SendQueue("", queueBody, sc, nil)
+
+	logField := enqueuestomp.NewLogField()
+	logField.SetNewField("testKey", "testValue")
+
+	err = enqueue.SendQueue("", queueBody, sc, logField)
 	c.Assert(err, check.Equals, enqueuestomp.ErrEmptyQueueName)
 }
 
@@ -296,7 +313,11 @@ func (s *EnqueueStompSuite) TestSendTopicNameEmpty(c *check.C) {
 	c.Assert(err, check.IsNil)
 
 	sc := enqueuestomp.SendConfig{}
-	err = enqueue.SendTopic("", topicBody, sc, nil)
+
+	logField := enqueuestomp.NewLogField()
+	logField.SetNewField("testKey", "testValue")
+
+	err = enqueue.SendTopic("", topicBody, sc, logField)
 	c.Assert(err, check.Equals, enqueuestomp.ErrEmptyTopicName)
 }
 
@@ -309,7 +330,10 @@ func (s *EnqueueStompSuite) TestSendQueueWritePersistent(c *check.C) {
 	sc := enqueuestomp.SendConfig{}
 	sc.SetOptions(stomp.SendOpt.Header("persistent", "true"))
 
-	err = enqueue.SendQueue(queueName, queueBody, sc, nil)
+	logField := enqueuestomp.NewLogField()
+	logField.SetNewField("testKey", "testValue")
+
+	err = enqueue.SendQueue(queueName, queueBody, sc, logField)
 	c.Assert(err, check.IsNil)
 	s.waitQueueSize(enqueue)
 
@@ -331,7 +355,11 @@ func (s *EnqueueStompSuite) TestSendQueueWithCircuitBreaker(c *check.C) {
 	sc := enqueuestomp.SendConfig{
 		CircuitName: "circuit-enqueuestomp",
 	}
-	err = enqueue.SendQueue(queueName, queueBody, sc, nil)
+
+	logField := enqueuestomp.NewLogField()
+	logField.SetNewField("testKey", "testValue")
+
+	err = enqueue.SendQueue(queueName, queueBody, sc, logField)
 	c.Assert(err, check.IsNil)
 	s.waitQueueSize(enqueue)
 
@@ -347,10 +375,13 @@ func (s *EnqueueStompSuite) TestSendQueueWithWriteDisk(c *check.C) {
 	)
 	c.Assert(err, check.IsNil)
 
+	logField := enqueuestomp.NewLogField()
+	logField.SetNewField("testKey", "testValue")
+
 	total := 100
 	for i := 0; i < total; i++ {
 		sc := enqueuestomp.SendConfig{}
-		err = enqueue.SendQueue(queueName, queueBody, sc, nil)
+		err = enqueue.SendQueue(queueName, queueBody, sc, logField)
 		c.Assert(err, check.IsNil)
 	}
 	s.waitQueueSize(enqueue)
@@ -368,10 +399,13 @@ func (s *EnqueueStompSuite) TestSendTopic(c *check.C) {
 	)
 	c.Assert(err, check.IsNil)
 
+	logField := enqueuestomp.NewLogField()
+	logField.SetNewField("testKey", "testValue")
+
 	total := 100
 	for i := 0; i < total; i++ {
 		sc := enqueuestomp.SendConfig{}
-		err = enqueue.SendTopic(topicName, topicBody, sc, nil)
+		err = enqueue.SendTopic(topicName, topicBody, sc, logField)
 		c.Assert(err, check.IsNil)
 	}
 	s.waitQueueSize(enqueue)
@@ -388,10 +422,13 @@ func (s *EnqueueStompSuite) TestSendTopicWithWriteDisk(c *check.C) {
 	)
 	c.Assert(err, check.IsNil)
 
+	logField := enqueuestomp.NewLogField()
+	logField.SetNewField("testKey", "testValue")
+
 	total := 100
 	for i := 0; i < total; i++ {
 		sc := enqueuestomp.SendConfig{}
-		err = enqueue.SendTopic(topicName, topicBody, sc, nil)
+		err = enqueue.SendTopic(topicName, topicBody, sc, logField)
 		c.Assert(err, check.IsNil)
 	}
 	s.waitQueueSize(enqueue)
@@ -427,7 +464,10 @@ func (s *EnqueueStompSuite) TestSendConfigOptions(c *check.C) {
 	sc.SetOptions(stomp.SendOpt.Header("persistent", "true"))
 	c.Assert(sc.Options, check.HasLen, 1)
 
-	err = enqueue.SendQueue(queueName, queueBody, sc, nil)
+	logField := enqueuestomp.NewLogField()
+	logField.SetNewField("testKey", "testValue")
+
+	err = enqueue.SendQueue(queueName, queueBody, sc, logField)
 	c.Assert(err, check.IsNil)
 	s.waitQueueSize(enqueue)
 
@@ -449,8 +489,11 @@ func (s *EnqueueStompSuite) TestConfigOptions(c *check.C) {
 	enqueue, err := enqueuestomp.NewEnqueueStomp(enqueueConfig)
 	c.Assert(err, check.IsNil)
 
+	logField := enqueuestomp.NewLogField()
+	logField.SetNewField("testKey", "testValue")
+
 	sc := enqueuestomp.SendConfig{}
-	err = enqueue.SendQueue(queueName, queueBody, sc, nil)
+	err = enqueue.SendQueue(queueName, queueBody, sc, logField)
 	c.Assert(err, check.IsNil)
 	s.waitQueueSize(enqueue)
 
@@ -467,7 +510,11 @@ func (s *EnqueueStompSuite) TestSendConfigLogger(c *check.C) {
 	c.Assert(err, check.IsNil)
 
 	sc := enqueuestomp.SendConfig{}
-	err = enqueue.SendQueue(queueName, queueBody, sc, nil)
+
+	logField := enqueuestomp.NewLogField()
+	logField.SetNewField("testKey", "testValue")
+
+	err = enqueue.SendQueue(queueName, queueBody, sc, logField)
 	c.Assert(err, check.IsNil)
 	s.waitQueueSize(enqueue)
 
@@ -484,6 +531,9 @@ func (s *EnqueueStompSuite) TestSend(c *check.C) {
 	err = enqueue.Disconnect()
 	c.Assert(err, check.IsNil)
 
+	logField := enqueuestomp.NewLogField()
+	logField.SetNewField("testKey", "testValue")
+
 	var wg sync.WaitGroup
 	total := 1500
 	for i := 0; i < total; i++ {
@@ -491,7 +541,7 @@ func (s *EnqueueStompSuite) TestSend(c *check.C) {
 		go func() {
 			defer wg.Done()
 			sc := enqueuestomp.SendConfig{}
-			err := enqueue.SendTopic(topicName, topicBody, sc, nil)
+			err := enqueue.SendTopic(topicName, topicBody, sc, logField)
 			c.Assert(err, check.IsNil)
 		}()
 	}

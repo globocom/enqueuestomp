@@ -12,17 +12,23 @@ type LogFieldImpl struct {
 }
 
 func NewLogField() LogField {
-	return &LogFieldImpl{}
+	return &LogFieldImpl{
+		fields: map[string]string{},
+	}
 }
 
 func (log *LogFieldImpl) SetNewField(key, value string) {
-	log.fields[key] = value
+	if len(key) > 0 {
+		log.fields[key] = value
+	}
 }
 
 func (log *LogFieldImpl) getFields() []zap.Field {
 	var fields []zap.Field
-	for key, value := range log.fields {
-		fields = append(fields, zap.String(key, value))
+	if len(log.fields) > 0 {
+		for key, value := range log.fields {
+			fields = append(fields, zap.String(key, value))
+		}
 	}
 	return fields
 }
