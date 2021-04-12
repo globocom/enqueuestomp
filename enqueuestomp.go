@@ -70,22 +70,22 @@ func NewEnqueueStomp(config Config) (*EnqueueStomp, error) {
 // SendQueue
 // The body array contains the message body,
 // and its content should be consistent with the specified content type.
-func (emq *EnqueueStomp) SendQueue(queueName string, body []byte, sc SendConfig) error {
+func (emq *EnqueueStomp) SendQueue(queueName string, body []byte, sc SendConfig, logField LogField) error {
 	if queueName == "" || strings.TrimSpace(queueName) == "" {
 		return ErrEmptyQueueName
 	}
-	return emq.send(DestinationTypeQueue, queueName, body, sc)
+	return emq.send(DestinationTypeQueue, queueName, body, sc, logField)
 }
 
 // SendTopic
 // The body array contains the message body,
 // and its content should be consistent with the specified content type.
-func (emq *EnqueueStomp) SendTopic(topicName string, body []byte, sc SendConfig) error {
+func (emq *EnqueueStomp) SendTopic(topicName string, body []byte, sc SendConfig, logField LogField) error {
 	if topicName == "" || strings.TrimSpace(topicName) == "" {
 		return ErrEmptyTopicName
 	}
 
-	return emq.send(DestinationTypeTopic, topicName, body, sc)
+	return emq.send(DestinationTypeTopic, topicName, body, sc, logField)
 }
 
 func (emq *EnqueueStomp) QueueSize() int {
@@ -108,14 +108,14 @@ func (emq *EnqueueStomp) Disconnect() error {
 	return emq.conn.Disconnect()
 }
 
-func (emq *EnqueueStomp) send(destinationType string, destinationName string, body []byte, sc SendConfig) error {
+func (emq *EnqueueStomp) send(destinationType string, destinationName string, body []byte, sc SendConfig, logField LogField) error {
 	if len(body) == 0 {
 		return ErrEmptyBody
 	}
 	sc.init()
 
 	identifier := emq.config.IdentifierFunc()
-	emq.writeOutput("before", identifier, destinationType, destinationName, body)
+	emq.writeOutput("before", identifier, destinationType, destinationName, body, logField)
 
 	emq.wp.Submit(func() {
 		var err error
@@ -152,7 +152,7 @@ func (emq *EnqueueStomp) send(destinationType string, destinationName string, bo
 			}
 		}
 
-		emq.writeOutput("after", identifier, destinationType, destinationName, body)
+		emq.writeOutput("after", identifier, destinationType, destinationName, body, logField)
 		if sc.AfterSend != nil {
 			sc.AfterSend(identifier, destinationType, destinationName, body, startTime, err)
 		}
