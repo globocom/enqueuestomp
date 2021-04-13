@@ -9,12 +9,12 @@
 package enqueuestomp_test
 
 import (
+	"github.com/globocom/enqueuestomp/v2"
 	"runtime"
 	"strconv"
 	"sync"
 	"time"
 
-	"github.com/globocom/enqueuestomp"
 	"github.com/go-stomp/stomp"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
