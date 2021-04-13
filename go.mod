@@ -1,4 +1,4 @@
-module github.com/globocom/enqueuestomp
+module github.com/globocom/enqueuestomp/v2
 
 go 1.14
 
