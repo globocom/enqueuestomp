@@ -82,7 +82,7 @@ func NewEnqueueStomp(config Config) (EnqueueStomp, error) {
 // The body array contains the message body,
 // and its content should be consistent with the specified content type.
 func (emq *EnqueueStompImpl) SendQueue(queueName string, body []byte, sc SendConfig) error {
-	if queueName == "" || strings.TrimSpace(queueName) == "" {
+	if strings.TrimSpace(queueName) == "" {
 		return ErrEmptyQueueName
 	}
 	return emq.send(DestinationTypeQueue, queueName, body, sc)
@@ -92,7 +92,7 @@ func (emq *EnqueueStompImpl) SendQueue(queueName string, body []byte, sc SendCon
 // The body array contains the message body,
 // and its content should be consistent with the specified content type.
 func (emq *EnqueueStompImpl) SendTopic(topicName string, body []byte, sc SendConfig) error {
-	if topicName == "" || strings.TrimSpace(topicName) == "" {
+	if strings.TrimSpace(topicName) == "" {
 		return ErrEmptyTopicName
 	}
 
