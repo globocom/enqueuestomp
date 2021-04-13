@@ -22,7 +22,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/globocom/enqueuestomp"
+	"github.com/globocom/enqueuestomp/v2"
 	check "gopkg.in/check.v1"
 )
 
