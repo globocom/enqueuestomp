@@ -66,7 +66,7 @@ func (cb *CircuitBreakerConfig) init() {
 	}
 }
 
-func (emq *EnqueueStomp) ConfigureCircuitBreaker(name string, cb CircuitBreakerConfig) {
+func (emq *EnqueueStompImpl) ConfigureCircuitBreaker(name string, cb CircuitBreakerConfig) {
 	emq.mu.Lock()
 	defer emq.mu.Unlock()
 
@@ -82,7 +82,7 @@ func (emq *EnqueueStomp) ConfigureCircuitBreaker(name string, cb CircuitBreakerC
 	emq.circuitNames[circuitName] = circuitName
 }
 
-func (emq *EnqueueStomp) sendWithCircuitBreaker(identifier string, destination string, body []byte, sc SendConfig) error {
+func (emq *EnqueueStompImpl) sendWithCircuitBreaker(identifier string, destination string, body []byte, sc SendConfig) error {
 	circuitName := emq.makeCircuitName(sc.CircuitName)
 	err := hystrix.Do(circuitName, func() error {
 		emq.debugLogger(
@@ -95,11 +95,11 @@ func (emq *EnqueueStomp) sendWithCircuitBreaker(identifier string, destination s
 	return err
 }
 
-func (emq *EnqueueStomp) makeCircuitName(name string) string {
+func (emq *EnqueueStompImpl) makeCircuitName(name string) string {
 	return fmt.Sprintf("%s::%s", name, emq.id)
 }
 
-func (emq *EnqueueStomp) hasCircuitBreaker(sc SendConfig) bool {
+func (emq *EnqueueStompImpl) hasCircuitBreaker(sc SendConfig) bool {
 	if sc.CircuitName == "" {
 		return false
 	}

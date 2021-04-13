@@ -37,6 +37,8 @@ type SendConfig struct {
 	// the name of the CircuitBreaker.
 	// Default is empty
 	CircuitName string
+
+	logField LogField
 }
 
 func (sc *SendConfig) SetOptions(opts ...func(*frame.Frame) error) {
@@ -48,6 +50,13 @@ func (sc *SendConfig) AddOption(opt func(*frame.Frame) error) {
 		sc.Options = make([]func(*frame.Frame) error, 0)
 	}
 	sc.Options = append(sc.Options, opt)
+}
+
+func (sc *SendConfig) AddLogField(key, value string) {
+	if sc.logField == nil {
+		sc.logField = newLogField()
+	}
+	sc.logField.setNewField(key, value)
 }
 
 func (sc *SendConfig) init() {

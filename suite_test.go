@@ -59,7 +59,7 @@ func (s *EnqueueStompSuite) TearDownTest(c *check.C) {
 	time.Sleep(20 * time.Millisecond)
 }
 
-func (s *EnqueueStompSuite) waitQueueSize(enqueue *enqueuestomp.EnqueueStomp) {
+func (s *EnqueueStompSuite) waitQueueSize(enqueue enqueuestomp.EnqueueStomp) {
 	for enqueue.QueueSize() > 0 {
 		time.Sleep(300 * time.Millisecond)
 	}

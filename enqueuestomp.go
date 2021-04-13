@@ -30,7 +30,18 @@ var (
 	DefaultBodyCheck    = []byte("PING")
 )
 
-type EnqueueStomp struct {
+type EnqueueStomp interface {
+	SendQueue(queueName string, body []byte, sc SendConfig) error
+	SendTopic(topicName string, body []byte, sc SendConfig) error
+	QueueSize() int
+	Config() Config
+	CheckQueue(queueName string) error
+	CheckTopic(topicName string) error
+	Disconnect() error
+	ConfigureCircuitBreaker(name string, cb CircuitBreakerConfig)
+}
+
+type EnqueueStompImpl struct {
 	id           string
 	config       Config
 	mu           sync.RWMutex
@@ -43,10 +54,10 @@ type EnqueueStomp struct {
 	log          Logger
 }
 
-func NewEnqueueStomp(config Config) (*EnqueueStomp, error) {
+func NewEnqueueStomp(config Config) (EnqueueStomp, error) {
 	config.init()
 
-	emq := &EnqueueStomp{
+	emq := &EnqueueStompImpl{
 		id:           config.IdentifierFunc(),
 		config:       config,
 		wp:           workerpool.New(config.MaxWorkers),
@@ -70,8 +81,8 @@ func NewEnqueueStomp(config Config) (*EnqueueStomp, error) {
 // SendQueue
 // The body array contains the message body,
 // and its content should be consistent with the specified content type.
-func (emq *EnqueueStomp) SendQueue(queueName string, body []byte, sc SendConfig) error {
-	if queueName == "" || strings.TrimSpace(queueName) == "" {
+func (emq *EnqueueStompImpl) SendQueue(queueName string, body []byte, sc SendConfig) error {
+	if strings.TrimSpace(queueName) == "" {
 		return ErrEmptyQueueName
 	}
 	return emq.send(DestinationTypeQueue, queueName, body, sc)
@@ -80,42 +91,42 @@ func (emq *EnqueueStomp) SendQueue(queueName string, body []byte, sc SendConfig)
 // SendTopic
 // The body array contains the message body,
 // and its content should be consistent with the specified content type.
-func (emq *EnqueueStomp) SendTopic(topicName string, body []byte, sc SendConfig) error {
-	if topicName == "" || strings.TrimSpace(topicName) == "" {
+func (emq *EnqueueStompImpl) SendTopic(topicName string, body []byte, sc SendConfig) error {
+	if strings.TrimSpace(topicName) == "" {
 		return ErrEmptyTopicName
 	}
 
 	return emq.send(DestinationTypeTopic, topicName, body, sc)
 }
 
-func (emq *EnqueueStomp) QueueSize() int {
+func (emq *EnqueueStompImpl) QueueSize() int {
 	return emq.wp.WaitingQueueSize()
 }
 
-func (emq *EnqueueStomp) Config() Config {
+func (emq *EnqueueStompImpl) Config() Config {
 	return emq.config
 }
 
-func (emq *EnqueueStomp) CheckQueue(queueName string) error {
+func (emq *EnqueueStompImpl) CheckQueue(queueName string) error {
 	return emq.check(DestinationTypeQueue, queueName)
 }
 
-func (emq *EnqueueStomp) CheckTopic(topicName string) error {
+func (emq *EnqueueStompImpl) CheckTopic(topicName string) error {
 	return emq.check(DestinationTypeTopic, topicName)
 }
 
-func (emq *EnqueueStomp) Disconnect() error {
+func (emq *EnqueueStompImpl) Disconnect() error {
 	return emq.conn.Disconnect()
 }
 
-func (emq *EnqueueStomp) send(destinationType string, destinationName string, body []byte, sc SendConfig) error {
+func (emq *EnqueueStompImpl) send(destinationType string, destinationName string, body []byte, sc SendConfig) error {
 	if len(body) == 0 {
 		return ErrEmptyBody
 	}
 	sc.init()
 
 	identifier := emq.config.IdentifierFunc()
-	emq.writeOutput("before", identifier, destinationType, destinationName, body)
+	emq.writeOutput("before", identifier, destinationType, destinationName, body, sc.logField)
 
 	emq.wp.Submit(func() {
 		var err error
@@ -152,7 +163,7 @@ func (emq *EnqueueStomp) send(destinationType string, destinationName string, bo
 			}
 		}
 
-		emq.writeOutput("after", identifier, destinationType, destinationName, body)
+		emq.writeOutput("after", identifier, destinationType, destinationName, body, sc.logField)
 		if sc.AfterSend != nil {
 			sc.AfterSend(identifier, destinationType, destinationName, body, startTime, err)
 		}
@@ -162,7 +173,7 @@ func (emq *EnqueueStomp) send(destinationType string, destinationName string, bo
 }
 
 // NewConn Creates a new conn to broker.
-func (emq *EnqueueStomp) newConn(identifier string) (err error) {
+func (emq *EnqueueStompImpl) newConn(identifier string) (err error) {
 	emq.mu.Lock()
 	defer emq.mu.Unlock()
 	if atomic.LoadInt32(&emq.connected) != 0 {
@@ -201,7 +212,7 @@ func (emq *EnqueueStomp) newConn(identifier string) (err error) {
 	return err
 }
 
-func (emq *EnqueueStomp) check(destinationType string, destinationName string) error {
+func (emq *EnqueueStompImpl) check(destinationType string, destinationName string) error {
 	destination := fmt.Sprintf("/%s/%s", destinationType, destinationName)
 	unixTimeInMilliSeconds := time.Now().Add(DefaultExpiresCheck).UnixNano() / int64(time.Millisecond)
 	contentType := "text/plain"
